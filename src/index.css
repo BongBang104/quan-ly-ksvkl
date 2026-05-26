@@ -1,0 +1,283 @@
+/* =============================================================
+   ATC PRO — Design System v2.0
+   Modern SaaS Dashboard | Inter + JetBrains Mono
+   ============================================================= */
+
+:root {
+  /* ---- Brand ---- */
+  --c-primary:        #2563eb;
+  --c-primary-dark:   #1d4ed8;
+  --c-primary-light:  #3b82f6;
+  --c-primary-bg:     #eff6ff;
+  --c-primary-ring:   rgba(37,99,235,.18);
+
+  --c-success:        #10b981;
+  --c-success-bg:     #ecfdf5;
+  --c-warning:        #f59e0b;
+  --c-warning-bg:     #fffbeb;
+  --c-danger:         #ef4444;
+  --c-danger-bg:      #fef2f2;
+  --c-purple:         #8b5cf6;
+  --c-purple-bg:      #f5f3ff;
+  --c-teal:           #14b8a6;
+  --c-pink:           #ec4899;
+
+  /* ---- Surface ---- */
+  --c-bg:             #f0f4f8;
+  --c-surface:        #ffffff;
+  --c-surface-hover:  #f8fafc;
+  --c-surface-subtle: #f1f5f9;
+
+  /* ---- Text ---- */
+  --c-text-1: #0f172a;
+  --c-text-2: #334155;
+  --c-text-3: #64748b;
+  --c-text-4: #94a3b8;
+
+  /* ---- Border ---- */
+  --c-border:         #e2e8f0;
+  --c-border-light:   #f1f5f9;
+
+  /* ---- Sidebar ---- */
+  --sidebar-bg:       #09122b;
+  --sidebar-glow:     rgba(37,99,235,.35);
+  --sidebar-border:   rgba(255,255,255,.07);
+  --sidebar-hover:    rgba(255,255,255,.07);
+  --sidebar-text:     #7da0c4;
+  --sidebar-icon:     #5b8bbd;
+
+  /* ---- Shadows ---- */
+  --shadow-xs:  0 1px 2px rgba(15,23,42,.05);
+  --shadow-sm:  0 1px 3px rgba(15,23,42,.09), 0 1px 2px rgba(15,23,42,.06);
+  --shadow-md:  0 4px 6px -1px rgba(15,23,42,.07), 0 2px 4px -2px rgba(15,23,42,.05);
+  --shadow-lg:  0 10px 15px -3px rgba(15,23,42,.08), 0 4px 6px -4px rgba(15,23,42,.04);
+  --shadow-xl:  0 20px 25px -5px rgba(15,23,42,.1),  0 8px 10px -6px rgba(15,23,42,.05);
+  --shadow-2xl: 0 25px 50px -12px rgba(15,23,42,.25);
+  --shadow-inner: inset 0 2px 4px rgba(15,23,42,.06);
+
+  /* ---- Radius ---- */
+  --r-xs:   4px;
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   14px;
+  --r-xl:   18px;
+  --r-2xl:  24px;
+  --r-full: 9999px;
+
+  /* ---- Typography ---- */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', monospace;
+
+  /* ---- Motion ---- */
+  --ease-snap:   cubic-bezier(.4,0,.2,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --t-fast:      120ms;
+  --t-base:      200ms;
+  --t-slow:      350ms;
+}
+
+/* =============================================================
+   RESET & BASE
+   ============================================================= */
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--c-bg);
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  color: var(--c-text-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: var(--font-sans) !important;
+}
+
+/* Restore monospace for time / code / ID fields */
+[style*="Courier"] {
+  font-family: var(--font-mono) !important;
+  letter-spacing: 0;
+}
+
+/* React Native → Web compat: div = flex column by default */
+div {
+  display: flex;
+  flex-direction: column;
+  border-style: solid;
+  border-width: 0;
+  min-width: 0;
+  min-height: 0; /* prevent flex children from overflowing their container vertically */
+}
+
+/* =============================================================
+   INTERACTIVE ELEMENTS
+   ============================================================= */
+button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  cursor: pointer;
+  transition:
+    filter       var(--t-fast) var(--ease-snap),
+    transform    var(--t-fast) var(--ease-snap),
+    box-shadow   var(--t-fast) var(--ease-snap),
+    background   var(--t-base) var(--ease-snap),
+    opacity      var(--t-fast) var(--ease-snap);
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+button:not(:disabled):hover { filter: brightness(1.07); }
+button:not(:disabled):active { transform: scale(0.97); }
+button:disabled { cursor: not-allowed; }
+
+input, textarea, select {
+  box-sizing: border-box;
+  transition:
+    border-color var(--t-fast) var(--ease-snap),
+    box-shadow   var(--t-fast) var(--ease-snap);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: var(--c-primary) !important;
+  box-shadow: 0 0 0 3px var(--c-primary-ring) !important;
+}
+
+/* =============================================================
+   CUSTOM SCROLLBAR
+   ============================================================= */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Sidebar scrollbar — nearly invisible */
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); }
+
+/* =============================================================
+   ANIMATIONS
+   ============================================================= */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scalePop {
+  0%   { opacity: 0; transform: scale(.88); }
+  70%  { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.7); }
+  60%      { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+}
+
+@keyframes gradientBG {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%  { transform: translateY(-12px) rotate(2deg); }
+  66%  { transform: translateY(-6px) rotate(-1deg); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-20px) scale(1.04); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* =============================================================
+   UTILITY CLASSES
+   ============================================================= */
+
+/* Screen content entrance */
+.screen-enter {
+  animation: fadeInUp 0.32s var(--ease-snap) both;
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform var(--t-base) var(--ease-snap), box-shadow var(--t-base) var(--ease-snap);
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Status live dot */
+.dot-live {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* Notification badge */
+.badge-ring {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Login page animated gradient */
+.login-gradient-bg {
+  background: linear-gradient(-45deg, #060e20, #0c1a3a, #0f2548, #071128);
+  background-size: 400% 400%;
+  animation: gradientBG 14s ease infinite;
+}
+
+/* Floating shapes on login */
+.shape-float-1 { animation: float     12s ease-in-out infinite; }
+.shape-float-2 { animation: float      9s ease-in-out infinite 2s; }
+.shape-float-3 { animation: floatSlow 16s ease-in-out infinite 1s; }
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+}
+
+/* =============================================================
+   TEXT SELECTION
+   ============================================================= */
+::selection {
+  background: rgba(37,99,235,.15);
+  color: #1e40af;
+}
