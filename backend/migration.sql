@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS employees (
   "isVip"      BOOLEAN NOT NULL DEFAULT FALSE,
   phone        VARCHAR,
   email        VARCHAR,
-  password     VARCHAR NOT NULL DEFAULT 'tctsdn123',
+  password     VARCHAR NOT NULL,
   "isFirstLogin" BOOLEAN NOT NULL DEFAULT TRUE,
   "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -76,7 +76,6 @@ CREATE TABLE IF NOT EXISTS requests (
   "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Seed a default admin account (password: tctsdn123)
-INSERT INTO employees (id, name, role, password, "isFirstLogin")
-VALUES ('admin', 'Administrator', 'admin', 'tctsdn123', TRUE)
-ON CONFLICT (id) DO NOTHING;
+-- Tài khoản admin ban đầu được tạo bằng script: backend/scripts/seed-admin.ts
+-- Lệnh: npx ts-node backend/scripts/seed-admin.ts
+-- Lý do: cần hash bcrypt, không thể seed bằng SQL thuần.

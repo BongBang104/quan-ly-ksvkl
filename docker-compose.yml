@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+
+  backend:
+    build: ./backend
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 8h
+      FRONTEND_URL: ${FRONTEND_URL}
+      PORT: 3000
+    depends_on: [postgres]
+    networks: [internal]
+
+  analytics:
+    build: ./analytics
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+    depends_on: [postgres]
+    networks: [internal]
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports: ["80:80"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./dist:/usr/share/nginx/html:ro
+    depends_on: [backend, analytics]
+    networks: [internal]
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:

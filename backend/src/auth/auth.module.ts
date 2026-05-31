@@ -16,7 +16,13 @@ import { Employee }       from '../employees/employee.entity';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
-        secret: cfg.get<string>('JWT_SECRET', 'atc_secret_key'),
+        secret: (() => {
+          const s = cfg.get<string>('JWT_SECRET');
+          if (!s || s.length < 32) {
+            throw new Error('JWT_SECRET phải được khai báo trong .env và dài ≥ 32 ký tự.');
+          }
+          return s;
+        })(),
         signOptions: { expiresIn: cfg.get<string>('JWT_EXPIRES_IN', '8h') },
       }),
     }),

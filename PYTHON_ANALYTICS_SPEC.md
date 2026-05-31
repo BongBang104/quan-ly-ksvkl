@@ -12,8 +12,8 @@
 
 1. **Mọi ngưỡng quy định CHỈ LÀ GIÁ TRỊ VÍ DỤ** trong mã nguồn. Phải để cấu hình được (đọc từ DB hoặc file config), và thay bằng số liệu chính thức từ **VATM/CAAV và ICAO** trước khi dùng thật.
 2. **Dịch vụ này HỖ TRỢ ra quyết định, KHÔNG thay thế** quy trình phê duyệt chính thức. Người phụ trách vẫn chịu trách nhiệm cuối cùng.
-3. **Dịch vụ truy cập cơ sở dữ liệu ở chế độ CHỈ ĐỌC.** Mọi thao tác ghi (tạo/sửa/xóa ca trực, người dùng) là độc quyền của backend NestJS + Prisma. Python không bao giờ ghi vào DB nghiệp vụ.
-4. Schema cơ sở dữ liệu do **Prisma (phía NestJS) sở hữu và quản lý migration**. Python chỉ *ánh xạ để đọc* các bảng đã tồn tại, tuyệt đối không chạy migration từ phía Python.
+3. **Dịch vụ truy cập cơ sở dữ liệu ở chế độ CHỈ ĐỌC.** Mọi thao tác ghi (tạo/sửa/xóa ca trực, người dùng) là độc quyền của backend NestJS + TypeORM. Python không bao giờ ghi vào DB nghiệp vụ.
+4. Schema cơ sở dữ liệu do **TypeORM/migration.sql (phía NestJS) sở hữu và quản lý**. Python chỉ *ánh xạ để đọc* các bảng đã tồn tại, tuyệt đối không chạy migration từ phía Python.
 
 ---
 
@@ -24,7 +24,7 @@ flowchart TB
     User([Người dùng - KSVKL / Lãnh đạo])
     React["React Frontend<br/>(giao diện)"]
     Nest["NestJS Backend<br/>nghiệp vụ + auth + CRUD"]
-    PG[("PostgreSQL<br/>schema do Prisma quản lý")]
+    PG[("PostgreSQL<br/>schema do TypeORM quản lý")]
     Py["Python Analytics Service<br/>FastAPI"]
 
     User --> React
@@ -144,7 +144,7 @@ quan-ly-ksvkl/
     │   │   └── timezone.py       # xử lý múi giờ
     │   ├── data/
     │   │   ├── database.py       # tạo engine SQLAlchemy, session factory
-    │   │   ├── models.py         # ORM models ánh xạ bảng Prisma (chỉ đọc)
+    │   │   ├── models.py         # ORM models ánh xạ bảng TypeORM (chỉ đọc)
     │   │   └── repository.py     # ShiftRepository, RatingRepository...
     │   ├── compliance/
     │   │   └── rest_compliance.py # ĐÃ XÂY (xem mục 6.1) — copy vào đây
@@ -230,7 +230,7 @@ Mỗi module nghiệp vụ (compliance, fairness, ratings, forecast, optimize) n
 
 Đây là phase nền tảng. Mục tiêu: dịch vụ chạy được, đọc dữ liệu thật từ PostgreSQL, và phục vụ hai tính năng đầu tiên qua API.
 
-### 7.1 — Schema DB kỳ vọng (đối chiếu với Prisma thực tế)
+### 7.1 — Schema DB kỳ vọng (đối chiếu với TypeORM thực tế)
 
 Lớp đọc DB giả định các bảng sau (tên cột có thể khác — **phải đối chiếu với `schema.prisma` thực tế của dự án và chỉnh `models.py` cho khớp**):
 
@@ -256,11 +256,12 @@ shift_position_sessions (các phiên vị trí trong một ca - luân phiên)
   end_at      TIMESTAMPTZ
 ```
 
-> Nếu schema Prisma thực tế dùng tên khác (ví dụ `startAt` thay vì `start_at`), chỉ cần sửa thuộc tính ánh xạ trong `models.py`, không sửa tầng nghiệp vụ.
+> Nếu schema TypeORM thực tế dùng tên khác (ví dụ `startAt` thay vì `start_at`), chỉ cần sửa thuộc tính ánh xạ trong `models.py`, không sửa tầng nghiệp vụ.
+> Lưu ý: TypeORM dùng camelCase với nháy kép trong PostgreSQL, ví dụ `"controllerId"`, `"isNight"`, `"shiftId"`, `"monthKey"`.
 
 ### 7.2 — `app/data/database.py`
 
-- Hàm chuẩn hóa URL: Prisma dùng `postgresql://...`, SQLAlchemy + psycopg v3 cần `postgresql+psycopg://...`. Viết hàm `normalize_db_url()` chuyển đổi đầu chuỗi.
+- Hàm chuẩn hóa URL: TypeORM dùng `postgresql://...`, SQLAlchemy + psycopg v3 cần `postgresql+psycopg://...`. Viết hàm `normalize_db_url()` chuyển đổi đầu chuỗi.
 - Hàm `create_engine_from_settings()`: tạo engine với `pool_pre_ping=True`, `echo=False`.
 - Cung cấp `SessionLocal` (session factory) để các repository dùng.
 - Khuyến nghị: mở session ở chế độ chỉ đọc khi có thể.
@@ -268,7 +269,7 @@ shift_position_sessions (các phiên vị trí trong một ca - luân phiên)
 ### 7.3 — `app/data/models.py`
 
 - Định nghĩa các ORM model `ControllerModel`, `ShiftModel` ánh xạ tới bảng đã tồn tại (declarative style SQLAlchemy 2.0).
-- **Không** dùng để tạo bảng trên Postgres (Prisma làm việc đó). Chỉ dùng để đọc.
+- **Không** dùng để tạo bảng trên Postgres (TypeORM/migration.sql làm việc đó). Chỉ dùng để đọc.
 - `ShiftModel` có quan hệ tới `ControllerModel` để lấy tên KSVKL.
 
 ### 7.4 — `app/data/repository.py`
@@ -362,7 +363,7 @@ controller_qualification_positions (các vị trí riêng lẻ, chỉ dùng khi 
   expires_at         DATE       -- (tùy chọn) hết hạn riêng theo từng vị trí
 ```
 
-> Cấu trúc bảng cụ thể tùy theo `schema.prisma` thực tế của bạn (có thể bạn đã thiết kế khác — ví dụ gộp vào một bảng JSON). Điều quan trọng là `RatingRepository` phải dựng được đối tượng `Qualification(controller_id, is_full, positions)` cho mỗi KSVKL. Bảng do NestJS/Prisma quản lý; Python chỉ đọc.
+> Cấu trúc bảng cụ thể tùy theo entity TypeORM thực tế (dự án hiện gộp `qualification` vào một cột trong bảng `employees` thay vì 2 bảng riêng — nếu muốn tách bảng đó là cải tiến Phase 2). Điều quan trọng là `RatingRepository` phải dựng được đối tượng `Qualification(controller_id, is_full, positions)` cho mỗi KSVKL. Bảng do NestJS/TypeORM quản lý; Python chỉ đọc.
 
 ### 8.2 — Module `app/ratings/rating_status.py`
 

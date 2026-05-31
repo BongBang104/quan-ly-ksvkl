@@ -63,3 +63,49 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## Quy ước riêng cho dự án quan-ly-ksvkl
+
+### Tech stack đã chốt
+
+- Backend: NestJS + TypeORM + PostgreSQL (KHÔNG dùng Prisma).
+- Analytics: Python FastAPI, CHỈ ĐỌC DB.
+- Frontend: React + Vite.
+
+### Quy ước database
+
+- Tên cột trong DB: `camelCase` có dấu nháy kép (TypeORM convention),
+  ví dụ `"controllerId"`, `"isNight"`.
+- Schema do `backend/migration.sql` quản lý. `synchronize` PHẢI là `false`.
+- Analytics đọc các bảng do TypeORM tạo — KHÔNG được ghi.
+
+### Quy ước mật khẩu & bảo mật
+
+- TUYỆT ĐỐI không bao giờ commit mật khẩu plain-text, kể cả seed/migration.
+- Mọi mật khẩu lưu trong DB phải là bcrypt hash (`$2...`).
+- JWT_SECRET phải ≥ 32 ký tự; CORS không bao giờ dùng `*`.
+- Endpoint thao tác dữ liệu nhạy cảm (tạo/sửa/xóa nhân sự, publish lịch)
+  phải có cả `JwtAuthGuard` và `RolesGuard`.
+
+### Mô hình vị trí (KSVKL)
+
+- 4 vị trí điều hành: APP, CTL, TWR, GCU.
+- CTL = vùng trời dưới FL245 (trên FL245 do ACC HCM/HN, ngoài phạm vi).
+- Năng định: "full" hoặc danh sách vị trí riêng lẻ.
+- Một ca trực có thể chứa NHIỀU phiên vị trí (luân phiên).
+- Phiên liền kề cùng vị trí (không giải lao) được gộp khi tính ngồi vị trí.
+
+### Ngưỡng quy định
+
+- Mọi ngưỡng (giờ nghỉ, recency, ...) đọc từ cấu hình, KHÔNG hard-code.
+- Ngưỡng phải đối chiếu với quy định VATM/CAAV và ICAO hiện hành.
+- Đây là hệ thống an toàn hàng không — luôn coi công cụ là HỖ TRỢ,
+  không thay thế quy trình phê duyệt chính thức.
+
+### Khi sửa code
+
+- Ưu tiên bảo mật trước, mọi thay đổi.
+- Đọc `FIX_PLAN.md` để biết kế hoạch khắc phục đang ở đâu.
+- Sau khi xong một mục, ghi vào `CHANGELOG_FIX.md`.

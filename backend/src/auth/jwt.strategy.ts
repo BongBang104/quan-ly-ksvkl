@@ -9,7 +9,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: cfg.get<string>('JWT_SECRET', 'atc_secret_key'),
+      secretOrKey: (() => {
+        const s = cfg.get<string>('JWT_SECRET');
+        if (!s || s.length < 32) {
+          throw new Error('JWT_SECRET phải được khai báo trong .env và dài ≥ 32 ký tự.');
+        }
+        return s;
+      })(),
     });
   }
 

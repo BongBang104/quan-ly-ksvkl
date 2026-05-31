@@ -6,9 +6,12 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allow React dev server + production build
+  const frontendUrl = process.env.FRONTEND_URL;
+  if (!frontendUrl) {
+    throw new Error('FRONTEND_URL phải được khai báo trong .env (danh sách origin, ngăn cách dấu phẩy).');
+  }
   app.enableCors({
-    origin: process.env.FRONTEND_URL?.split(',') ?? '*',
+    origin: frontendUrl.split(',').map(s => s.trim()),
     credentials: true,
   });
 
