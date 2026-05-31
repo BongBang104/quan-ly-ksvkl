@@ -1,5 +1,7 @@
 import { Controller, Get, Put, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard }      from '../auth/jwt-auth.guard';
+import { RolesGuard }        from '../auth/roles.guard';
+import { Roles }             from '../auth/roles.decorator';
 import { SchedulesService }  from './schedules.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
@@ -11,7 +13,8 @@ export class SchedulesController {
   ) {}
 
   @Post('notify-roster')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   notifyRoster(
     @Body() body: { team: string; date: string; shift: string; empAssignments: Record<string, any[]> },
   ) {
@@ -26,7 +29,8 @@ export class SchedulesController {
   }
 
   @Put(':monthKey')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   async saveMonth(
     @Param('monthKey') monthKey: string,
     @Body() body: { data: Record<string, any> },

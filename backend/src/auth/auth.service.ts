@@ -37,10 +37,9 @@ export class AuthService {
 
   // ── Helpers ─────────────────────────────────────────────────────────────
   private async verifyPassword(plain: string, stored: string): Promise<boolean> {
-    // Support both plain-text legacy passwords ('tctsdn123') and bcrypt hashes
-    if (stored.startsWith('$2')) {
-      return bcrypt.compare(plain, stored);
-    }
-    return plain === stored; // legacy plain-text — will be replaced on first change
+    // Chỉ chấp nhận bcrypt hash. Nếu DB còn password plain-text (legacy),
+    // chạy script migration để hash trước khi triển khai.
+    if (!stored.startsWith('$2')) return false;
+    return bcrypt.compare(plain, stored);
   }
 }

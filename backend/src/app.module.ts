@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AuthModule }          from './auth/auth.module';
 import { EmployeesModule }     from './employees/employees.module';
@@ -24,6 +26,7 @@ import { Request }              from './requests/request.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -35,7 +38,7 @@ import { Request }              from './requests/request.entity';
         password: cfg.get('DB_PASS',  'postgres'),
         database: cfg.get('DB_NAME',  'atc_pro'),
         entities: [Employee, Setting, Activity, Schedule, Shift, ShiftPositionSession, Task, Request],
-        synchronize: true, // Auto-create tables — disable in production, use migrations
+        synchronize: false, // Schema do migration.sql quản lý. KHÔNG bật trong production.
         logging: false,
       }),
     }),
@@ -49,6 +52,9 @@ import { Request }              from './requests/request.entity';
     RequestsModule,
     NotificationsModule,
     HealthModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

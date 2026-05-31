@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not }   from 'typeorm';
+import * as bcrypt           from 'bcrypt';
 import { Employee }          from './employee.entity';
 
 @Injectable()
@@ -28,7 +29,10 @@ export class EmployeesService {
         ...e,
         isApproved: e.isApproved !== undefined ? e.isApproved : (e.role === 'ADMIN' ? false : true),
       }));
-    const saved = await this.repo.save(filtered);
+    const hashed = await Promise.all(
+      filtered.map(async e => ({ ...e, password: await this.hashIfPlain(e.password) })),
+    );
+    const saved = await this.repo.save(hashed);
     return { list: saved.map(({ password, ...e }) => e as any) };
   }
 
@@ -37,7 +41,16 @@ export class EmployeesService {
     if (emp.isApproved === undefined && emp.role === 'ADMIN') {
       (emp as any).isApproved = false;
     }
+    if (emp.password) {
+      emp.password = await this.hashIfPlain(emp.password);
+    }
     return this.repo.save(emp);
+  }
+
+  private async hashIfPlain(password: string | undefined): Promise<string | undefined> {
+    if (!password) return undefined;
+    if (password.startsWith('$2')) return password;
+    return bcrypt.hash(password, 10);
   }
 
   async setApproved(id: string, isApproved: boolean): Promise<void> {

@@ -13,7 +13,7 @@ import pytest
 
 from app.compliance.rest_compliance import (
     Shift, PositionSession, Position, Qualification, ALL_POSITIONS,
-    RestRuleConfig, ComplianceChecker, Severity, format_report,
+    AUXILIARY_POSITIONS, RestRuleConfig, ComplianceChecker, Severity, format_report,
 )
 
 CFG = RestRuleConfig()
@@ -135,7 +135,7 @@ def test_coverage_shift_without_sessions_ignored():
 
 
 @pytest.mark.parametrize("pos", list(Position))
-def test_coverage_full_qualifies_all_four_positions(pos):
+def test_coverage_full_qualifies_all_operational_positions(pos):
     quals = {1: Qualification(1, is_full=True)}
     h = CFG.max_on_position_minutes / 60.0 / 2
     shifts = [one_position_shift(1, BASE, h, pos)]
@@ -381,3 +381,35 @@ def test_merge_gap_configurable():
         sess(Position.TWR, BASE + timedelta(hours=part, minutes=5), part),  # cách 5 phút < 10
     ])
     assert "max_on_position" in rules_in(checker(cfg).check_all([s]))
+
+
+# ===================== Vị trí phụ trợ (HĐA/HĐC/HĐT/HĐG) =====================
+
+def test_auxiliary_positions_no_qualification_check():
+    """KSVKL không có năng định nào vẫn không vi phạm khi ngồi vị trí phụ trợ."""
+    quals = {1: Qualification(1, is_full=False, positions=frozenset())}
+    h = CFG.max_on_position_minutes / 60.0 / 2
+    shifts = [make_shift(1, BASE, h, sessions=[
+        sess(pos, BASE + timedelta(minutes=i * 10), h / len(AUXILIARY_POSITIONS))
+        for i, pos in enumerate(AUXILIARY_POSITIONS)
+    ])]
+    cov = [x for x in checker().check_all(shifts, quals) if x.rule == "qualification_coverage"]
+    assert cov == [], "Vị trí phụ trợ không được phát sinh vi phạm qualification"
+
+
+def test_auxiliary_positions_no_recency_check():
+    """Vị trí phụ trợ không bị kiểm tra recency dù khoảng cách rất dài."""
+    window = CFG.max_days_between_position_use
+    h = CFG.max_on_position_minutes / 60.0 / 2
+    pos = next(iter(AUXILIARY_POSITIONS))
+    shifts = [
+        one_position_shift(1, BASE, h, pos),
+        one_position_shift(2, BASE + timedelta(days=window * 2), h, pos),
+    ]
+    assert [x for x in checker().check_all(shifts) if x.rule == "position_recency"] == []
+
+
+def test_all_positions_excludes_auxiliary():
+    """ALL_POSITIONS chỉ chứa vị trí yêu cầu năng định, không chứa phụ trợ."""
+    assert AUXILIARY_POSITIONS.isdisjoint(ALL_POSITIONS)
+    assert ALL_POSITIONS | AUXILIARY_POSITIONS == frozenset(Position)

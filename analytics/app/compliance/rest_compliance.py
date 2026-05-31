@@ -8,13 +8,19 @@ MÔ HÌNH CA TRỰC & VỊ TRÍ:
     - Trong một ca, KSVKL CÓ THỂ LUÂN PHIÊN nhiều vị trí -> ca chứa danh sách
       các "phiên vị trí" (PositionSession), mỗi phiên là một lượt ngồi liên tục
       tại MỘT vị trí.
-    - Vị trí điều hành: APP / CTL / TWR / GCU.
-        APP = tiếp cận; TWR = đài chỉ huy; GCU = kiểm soát mặt đất;
-        CTL = điều hành vùng trời dưới FL245 (tương tự ACC nhưng thuộc đơn vị;
-              phần trên FL245 do ACC HCM/HN đảm nhận, ngoài phạm vi).
+
+    Vị trí điều hành chính (cần năng định):
+        APP    = tiếp cận; TWR = đài chỉ huy; GCU = kiểm soát mặt đất;
+        CTL    = vùng trời dưới FL245 (trên FL245 do ACC HCM/HN, ngoài phạm vi).
+        TKT_T6 = kíp trưởng tầng 6 (APP/CTL) — cần năng định kíp trưởng.
+        TKT_T8 = kíp trưởng tầng 8 (TWR/GCU) — cần năng định kíp trưởng.
+        QS     = hiệp đồng quân sự — kíp trưởng sắp xếp nhân sự có năng định.
+
+    Vị trí phụ trợ (AUXILIARY_POSITIONS — không cần năng định riêng):
+        HDA, HDC, HDT, HDG: hiệp đồng, bất kỳ KSVKL nào cũng đảm nhận được.
 
 MÔ HÌNH NĂNG ĐỊNH:
-    - "full": làm được TẤT CẢ vị trí.
+    - "full": làm được TẤT CẢ vị trí trong ALL_POSITIONS (operational).
     - Ngược lại: chỉ làm được các vị trí riêng lẻ được liệt kê.
 
 LƯU Ý AN TOÀN:
@@ -36,14 +42,32 @@ class Severity(Enum):
 
 
 class Position(Enum):
-    """Vị trí điều hành trong đơn vị."""
-    APP = "APP"   # Approach - tiếp cận
-    CTL = "CTL"   # Control - vùng trời dưới FL245 (tương tự ACC, thuộc đơn vị)
-    TWR = "TWR"   # Tower - đài chỉ huy
-    GCU = "GCU"   # Ground Control Unit - kiểm soát mặt đất
+    """Vị trí trong đơn vị KSVKL."""
+    # Vị trí điều hành chính — cần năng định
+    APP    = "APP"     # Approach Control - tiếp cận
+    CTL    = "CTL"     # Control - vùng trời dưới FL245 (tương tự ACC, thuộc đơn vị)
+    TWR    = "TWR"     # Tower - đài chỉ huy
+    GCU    = "GCU"     # Ground Control Unit - kiểm soát mặt đất
+    # Vị trí kíp trưởng — cần năng định kíp trưởng
+    TKT_T6 = "TKT_T6"  # Kíp trưởng tầng 6 (APP/CTL)
+    TKT_T8 = "TKT_T8"  # Kíp trưởng tầng 8 (TWR/GCU)
+    # Vị trí hiệp đồng quân sự — cần năng định
+    QS     = "QS"      # Quân sự - hiệp đồng quân sự
+    # Vị trí phụ trợ — không cần năng định riêng
+    HDA    = "HDA"     # Hiệp đồng A
+    HDC    = "HDC"     # Hiệp đồng C
+    HDT    = "HDT"     # Hiệp đồng T
+    HDG    = "HDG"     # Hiệp đồng G
 
 
-ALL_POSITIONS = frozenset(Position)
+# Vị trí phụ trợ: bất kỳ KSVKL nào cũng đảm nhận được, không cần năng định riêng.
+# Bỏ qua trong kiểm tra qualification_coverage và position_recency.
+AUXILIARY_POSITIONS: frozenset[Position] = frozenset({
+    Position.HDA, Position.HDC, Position.HDT, Position.HDG,
+})
+
+# Tập vị trí yêu cầu năng định — dùng cho is_full và recency tracking.
+ALL_POSITIONS: frozenset[Position] = frozenset(Position) - AUXILIARY_POSITIONS
 
 
 @dataclass
@@ -361,6 +385,8 @@ class ComplianceChecker:
         by_pos: dict[Position, list[tuple]] = {}
         for s in shifts:
             for sess in s.sessions:
+                if sess.position in AUXILIARY_POSITIONS:
+                    continue  # vị trí phụ trợ không cần recency
                 by_pos.setdefault(sess.position, []).append((sess.start, s.shift_id, s.controller_id, s.controller_name))
         for pos, entries in by_pos.items():
             entries.sort(key=lambda e: e[0])
@@ -381,6 +407,8 @@ class ComplianceChecker:
         out = []
         for s in shifts:
             for sess in s.sessions:
+                if sess.position in AUXILIARY_POSITIONS:
+                    continue  # vị trí phụ trợ không cần năng định riêng
                 if not qualification.can_work(sess.position):
                     qp = ", ".join(sorted(p.value for p in qualification.qualified_positions())) or "(không có)"
                     out.append(Violation(

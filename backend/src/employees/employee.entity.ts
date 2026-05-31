@@ -15,7 +15,7 @@ export class Employee {
   @Column({ default: false }) isVip:        boolean;
   @Column({ nullable: true }) phone:        string;
   @Column({ nullable: true }) email:        string;
-  @Column({ default: 'tctsdn123' }) password: string;
+  @Column() password: string;
   @Column({ default: true }) isFirstLogin:  boolean;
   @Column({ default: true }) isApproved:    boolean;
   @CreateDateColumn() createdAt: Date;
