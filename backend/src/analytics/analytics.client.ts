@@ -44,6 +44,10 @@ export class AnalyticsClient {
     return this._post('/analytics/roster/macro/checklist', payload);
   }
 
+  async precheckExchange(payload: unknown): Promise<unknown> {
+    return this._post('/analytics/exchange/precheck', payload);
+  }
+
   async getSpiSummary(monthKey: string): Promise<unknown> {
     try {
       const res = await fetch(

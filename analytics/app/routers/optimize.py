@@ -105,8 +105,11 @@ def optimize_roster(
 ) -> OptimizeResponse:
     """Tìm phương án phân ca tối ưu có ràng buộc.
 
-    LƯU Ý: kết quả là ĐỀ XUẤT — kíp trưởng phải duyệt trước khi áp dụng.
-    Mọi ngưỡng chỉ là ví dụ, cần thay bằng số liệu VATM/CAAV/ICAO chính thức.
+    LƯU Ý: kết quả là ĐỀ XUẤT — kíp trưởng phải duyệt trước khi áp dụng (QĐ 2288 Điều 5.1).
+    Áp dụng giới hạn theo QĐ 2288/QĐ-QLB ngày 25/3/2026 — xem RestRuleConfig.effective_from.
+    CP-SAT solver bám 5 ràng buộc cứng: nghỉ ≥ 12h giữa hai ca (Điều 13.1),
+    ≤ 3 ca đêm liên tiếp (Điều 15.1.b), nghỉ ≥ 48h sau chuỗi đêm (Điều 15.1.c),
+    ≤ 6 ngày làm liên tiếp (Điều 12.2), ≤ 180h trong 30 ngày (Điều 12.1).
     """
     from datetime import date as date_type
 

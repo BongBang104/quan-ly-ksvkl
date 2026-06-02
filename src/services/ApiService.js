@@ -44,6 +44,11 @@ api.interceptors.response.use(
 
 export default api;
 
+export const precheckShiftExchange = async (payload) => {
+  const res = await api.post('/api/shift-exchanges/precheck', payload);
+  return res.data;
+};
+
 // ── Analytics helpers ──────────────────────────────────────────────────────
 
 export const reviewRosterDraft = async (payload) => {

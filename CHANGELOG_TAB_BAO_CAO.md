@@ -157,11 +157,27 @@ Xác minh A: npm run build pass; 2 thanh tab hiển thị đúng
 
 ---
 
+---
+
+## Bổ sung (Sprint Next - 2026-06-02)
+
+[DONE] Mục B4.1 — 5 ràng buộc QĐ 2288 trong CP-SAT solver — 2026-06-02
+- shift_optimizer.py có đủ 5 hard constraints
+- Điều 13.1 (nghỉ ≥12h), Điều 15.1.b (≤3 đêm liên tiếp), Điều 15.1.c (nghỉ ≥48h sau đêm),
+  Điều 12.2 (≤6 ngày liên tiếp), Điều 12.1 (≤180h/30 ngày)
+- (CHANGELOG ban đầu thiếu dòng này; bổ sung khi rà soát)
+
+[DONE] Mục X1 — optimize.py docstring dọn "ví dụ" — 2026-06-02
+[DONE] Mục X2 — rating_status.py docstring dọn "VATM/CAAV/ICAO" — 2026-06-02
+
+---
+
 ## Xác minh tổng thể
 
 - analytics: 135 tests passed (thêm 25 test mới so với ban đầu)
 - NestJS: nest build clean (với @nestjs/schedule)
 - Frontend: vite build clean
 - migration.sql: 4 bảng mới (fatigue_reports, shift_exchanges, shift_briefings, shift_handovers)
-- Không còn chuỗi "giá trị ví dụ" trong analytics code
+- Không còn chuỗi "ví dụ"/"VATM/CAAV/ICAO" trong analytics code
+  (đã dọn 2 chỗ sót ở Sprint Next: optimize.py + rating_status.py)
 - Tất cả ngưỡng bám theo QĐ 2288/QĐ 2701 có citation

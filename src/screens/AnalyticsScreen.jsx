@@ -122,6 +122,81 @@ function Empty({ icon, text }) {
   );
 }
 
+function PrecheckPanel({ result }) {
+  if (!result) return null;
+
+  const canApprove = result.can_approve ?? result.canApprove ?? false;
+  const warnings = result.warnings ?? [];
+  const qualification = result.qualification_check ?? result.qualificationCheck ?? {};
+  const applicantViolations = result.new_violations_applicant ?? result.newViolationsApplicant ?? [];
+  const counterpartyViolations = result.new_violations_counterparty ?? result.newViolationsCounterparty ?? [];
+  const notes = result.notes ?? [];
+  const allViolations = [...applicantViolations, ...counterpartyViolations];
+
+  return (
+    <div style={{ marginTop: 16, padding: 16, borderRadius: 10,
+                  border: `1px solid ${canApprove ? '#86efac' : '#fecaca'}`,
+                  backgroundColor: canApprove ? '#f0fdf4' : '#fef2f2' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, color: canApprove ? '#166534' : '#991b1b' }}>
+          {canApprove
+            ? '✓ Precheck: cho phép đổi ca (cần kíp trưởng phê duyệt)'
+            : '✗ Precheck: KHÔNG cho phép đổi ca'}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Năng định applicant</div>
+          <div style={{ fontSize: 14, color: qualification.applicant_has_required ? '#166534' : '#b91c1c' }}>
+            {qualification.applicant_has_required ? '✓ Đủ điều kiện' : '✗ Thiếu điều kiện'}
+          </div>
+          <div style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>{qualification.required_for_applicant || ''}</div>
+        </div>
+        <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Năng định counterparty</div>
+          <div style={{ fontSize: 14, color: qualification.counterparty_has_required ? '#166534' : '#b91c1c' }}>
+            {qualification.counterparty_has_required ? '✓ Đủ điều kiện' : '✗ Thiếu điều kiện'}
+          </div>
+          <div style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>{qualification.required_for_counterparty || ''}</div>
+        </div>
+      </div>
+
+      {allViolations.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Vi phạm mới phát sinh:</div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {allViolations.map((violation, idx) => (
+              <div key={idx} style={{ padding: 10, borderRadius: 8, backgroundColor: '#fff', border: `1px solid ${violation.severity === 'CRITICAL' ? '#fecaca' : '#fde68a'}` }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: violation.severity === 'CRITICAL' ? '#991b1b' : '#92400e' }}>
+                  [{violation.severity}] {violation.rule || violation.message}
+                </div>
+                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{violation.message ?? ''}</div>
+                {violation.legal_basis && <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>📜 {violation.legal_basis}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div style={{ padding: 12, borderRadius: 10, backgroundColor: '#fffbeb', border: '1px solid #fde68a', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Cảnh báo</div>
+          <ul style={{ margin: 0, paddingLeft: 18, color: '#92400e', fontSize: 13 }}>
+            {warnings.map((warning, idx) => <li key={idx}>{warning}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {notes.length > 0 && (
+        <div style={{ fontSize: 12, color: '#475569' }}>
+          {notes.map((note, idx) => <div key={idx}>ℹ️ {note}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HowTo({ steps }) {
   return (
     <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10,
@@ -1151,6 +1226,12 @@ function ShiftExchangeTab({ currentUser }) {
   const [cpShiftCode, setCpShiftCode] = useState('S');
   const [committed, setCommitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [prechecking, setPrechecking] = useState(false);
+  const [precheckResult, setPrecheckResult] = useState(null);
+  const [approvalOpen, setApprovalOpen] = useState({});
+  const [overrideReasons, setOverrideReasons] = useState({});
+  const [approving, setApproving] = useState({});
+  const [detailsOpen, setDetailsOpen] = useState({});
 
   // Xác định biểu mẫu dựa trên position/role của currentUser
   const pos = (currentUser?.position || '').toLowerCase();
@@ -1167,6 +1248,69 @@ function ShiftExchangeTab({ currentUser }) {
   }, []);
 
   useEffect(() => { loadMine(); }, [loadMine]);
+
+  const runPrecheck = async () => {
+    if (!appShiftDate || !counterpartyId || !counterpartyName) {
+      window.alert('Vui lòng điền đầy đủ thông tin trước khi kiểm tra điều kiện.');
+      return;
+    }
+    if (type === 'EXCHANGE' && !cpShiftDate) {
+      window.alert('Vui lòng chọn ngày ca hoàn trả cho yêu cầu Đổi ca.');
+      return;
+    }
+
+    setPrechecking(true);
+    setPrecheckResult(null);
+    try {
+      const { data } = await api.post('/api/shift-exchanges/precheck', {
+        type,
+        applicantShiftDate: appShiftDate,
+        applicantShiftCode: appShiftCode,
+        counterpartyId,
+        counterpartyShiftDate: type === 'EXCHANGE' ? cpShiftDate : undefined,
+        counterpartyShiftCode: type === 'EXCHANGE' ? cpShiftCode : undefined,
+      });
+      setPrecheckResult(data);
+    } catch (e) {
+      window.alert('Lỗi kiểm tra điều kiện: ' + (e?.response?.data?.message ?? e.message));
+    } finally {
+      setPrechecking(false);
+    }
+  };
+
+  const toggleApproval = (id) => {
+    setApprovalOpen(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleDetails = (id) => {
+    setDetailsOpen(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleApprove = async (ex) => {
+    const reason = overrideReasons[ex.id] || '';
+    if (!reason && ((ex.precheckResult?.warnings?.length ?? 0) > 0 || ex.precheckResult?.can_approve === false)) {
+      window.alert('Yêu cầu phải có lý do ghi đè khi precheck có cảnh báo hoặc không thể approve.');
+      return;
+    }
+
+    setApproving(prev => ({ ...prev, [ex.id]: true }));
+    try {
+      await api.put(`/api/shift-exchanges/${ex.id}/approve`, {
+        override_reason: reason || undefined,
+      });
+      window.alert('Phê duyệt thành công.');
+      setApprovalOpen(prev => ({ ...prev, [ex.id]: false }));
+      loadMine();
+    } catch (e) {
+      window.alert('Lỗi phê duyệt: ' + (e?.response?.data?.message ?? e.message));
+    } finally {
+      setApproving(prev => ({ ...prev, [ex.id]: false }));
+    }
+  };
+
+  const updateOverrideReason = (id, value) => {
+    setOverrideReasons(prev => ({ ...prev, [id]: value }));
+  };
 
   const submit = async () => {
     if (!appShiftDate || !counterpartyId || !counterpartyName) {
@@ -1218,18 +1362,68 @@ function ShiftExchangeTab({ currentUser }) {
             : exchanges.length === 0
               ? <Empty icon="repeat" text="Chưa có yêu cầu đổi ca nào." />
               : exchanges.map((ex, i) => (
-                <div key={ex.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9',
-                                          display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b',
-                                 backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4 }}>
-                    {ex.type === 'EXCHANGE' ? 'Đổi ca' : 'Trực thay'}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 13 }}>
-                    {ex.applicantShiftDate} ca {ex.applicantShiftCode} ↔ {ex.counterpartyName}
-                  </span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>
-                    {STATUS_LABEL[ex.status] || ex.status}
-                  </span>
+                <div key={ex.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'grid', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b',
+                                   backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4 }}>
+                      {ex.type === 'EXCHANGE' ? 'Đổi ca' : 'Trực thay'}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 13 }}>
+                      {ex.applicantShiftDate} ca {ex.applicantShiftCode} ↔ {ex.counterpartyName}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                      {STATUS_LABEL[ex.status] || ex.status}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gap: 6, marginBottom: 6 }}>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: '#475569' }}>
+                        Precheck:{' '}
+                        <strong style={{ color: ex.precheckResult?.can_approve === false ? '#991b1b' : ex.precheckResult?.can_approve ? '#166534' : '#475569' }}>
+                          {ex.precheckResult?.can_approve === false ? 'Không cho phép' : ex.precheckResult?.can_approve ? 'Cho phép' : 'Chưa kiểm tra'}
+                        </strong>
+                      </span>
+                      <span style={{ fontSize: 12, color: '#475569' }}>
+                        Cảnh báo: {ex.precheckResult?.warnings?.length ?? 0}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#475569' }}>
+                        Vi phạm mới: {(ex.precheckResult?.new_violations_applicant?.length ?? 0) + (ex.precheckResult?.new_violations_counterparty?.length ?? 0)}
+                      </span>
+                      <button type="button" style={{ ...T.btn, backgroundColor: '#3b82f6' }} onClick={() => toggleDetails(ex.id)}>
+                        {detailsOpen[ex.id] ? 'Ẩn chi tiết precheck' : 'Xem chi tiết precheck'}
+                      </button>
+                    </div>
+                    {detailsOpen[ex.id] && ex.precheckResult && (
+                      <PrecheckPanel result={ex.precheckResult} />
+                    )}
+                  </div>
+                  {(isChief && ['counterparty_agreed', 'chief_1_approved'].includes(ex.status)) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <button type="button" style={{ ...T.btn, backgroundColor: '#16a34a' }}
+                              onClick={() => toggleApproval(ex.id)}>
+                        {approvalOpen[ex.id] ? 'Đóng phê duyệt' : 'Phê duyệt'}
+                      </button>
+                      {(ex.precheckResult?.warnings?.length ?? 0) > 0 && (
+                        <span style={{ fontSize: 12, color: '#92400e' }}>⚠️ Có cảnh báo precheck</span>
+                      )}
+                    </div>
+                  )}
+                  {approvalOpen[ex.id] && (
+                    <div style={{ display: 'grid', gap: 10, marginTop: 10, padding: 12, borderRadius: 10, backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }}>
+                      <textarea
+                        rows={3}
+                        style={{ width: '100%', ...T.inp }}
+                        placeholder="Lý do phê duyệt (bắt buộc nếu có cảnh báo/precheck không approve)"
+                        value={overrideReasons[ex.id] || ''}
+                        onChange={e => updateOverrideReason(ex.id, e.target.value)}
+                      />
+                      <button type="button" onClick={() => handleApprove(ex)}
+                              disabled={approving[ex.id]}
+                              style={{ ...T.btn, backgroundColor: '#2563eb', opacity: approving[ex.id] ? 0.5 : 1 }}>
+                        {approving[ex.id] ? 'Đang phê duyệt…' : 'Xác nhận phê duyệt'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
           }
@@ -1290,11 +1484,18 @@ function ShiftExchangeTab({ currentUser }) {
             <input type="checkbox" checked={committed} onChange={e => setCommitted(e.target.checked)} style={{ marginTop: 3 }} />
             <span style={{ fontSize: 13 }}>Cam kết việc đổi ca/trực thay đã đảm bảo đúng quy định về thời giờ làm việc, nghỉ ngơi (QĐ 2701 Điều 8.1.c).</span>
           </label>
-          <button onClick={submit} disabled={submitting || !committed}
-                  style={{ ...T.btn, opacity: (submitting || !committed) ? 0.5 : 1 }}>
-            {submitting ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={15} color="#fff" />}
-            <span style={{ marginLeft: 8 }}>Gửi yêu cầu</span>
-          </button>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <button type="button" onClick={runPrecheck} disabled={prechecking}
+                    style={{ ...T.btn, backgroundColor: '#2563eb', opacity: prechecking ? 0.5 : 1 }}>
+              {prechecking ? 'Đang kiểm tra…' : '🔍 Kiểm tra điều kiện'}
+            </button>
+            <button onClick={submit} disabled={submitting || !committed}
+                    style={{ ...T.btn, opacity: (submitting || !committed) ? 0.5 : 1 }}>
+              {submitting ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={15} color="#fff" />}
+              <span style={{ marginLeft: 8 }}>Gửi yêu cầu</span>
+            </button>
+          </div>
+          {precheckResult && <PrecheckPanel result={precheckResult} />}
         </div>
       )}
     </div>
