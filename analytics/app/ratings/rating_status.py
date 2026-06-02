@@ -4,8 +4,10 @@ rating_status.py
 Quản lý vòng đời năng định KSVKL: cảnh báo hết hạn và thống kê phủ năng định.
 
 LƯU Ý AN TOÀN:
-- Ngưỡng ngày cảnh báo CHỈ LÀ VÍ DỤ — thay bằng số liệu VATM/CAAV/ICAO chính thức.
-- Đây là CÔNG CỤ HỖ TRỢ. Người phụ trách vẫn chịu trách nhiệm cuối cùng.
+- Ngưỡng ngày cảnh báo được cấu hình tại runtime (dropdown 30/60/90 ngày
+  trong QualificationsTab). Khi có quy chế năng định nội bộ chính thức của
+  VATM, cập nhật default tại đây kèm citation điều luật cụ thể.
+- Đây là CÔNG CỤ HỖ TRỢ — quyết định cuối thuộc người phụ trách năng định.
 """
 
 from __future__ import annotations

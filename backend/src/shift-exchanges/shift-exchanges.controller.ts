@@ -7,7 +7,7 @@ import { ShiftExchangesService } from './shift-exchanges.service';
 import { NotificationsGateway }  from '../notifications/notifications.gateway';
 
 class CreateExchangeDto {
-  @IsString() type!:                  string;
+  @IsString() type!:                  'EXCHANGE' | 'COVER';
   @IsString() applicantShiftDate!:    string;
   @IsString() applicantShiftCode!:    string;
   @IsString() counterpartyId!:        string;
@@ -15,6 +15,15 @@ class CreateExchangeDto {
   @IsOptional() @IsString() counterpartyShiftDate?: string;
   @IsOptional() @IsString() counterpartyShiftCode?: string;
   @IsOptional() @IsString() facilityType?: string;
+}
+
+class PrecheckExchangeDto {
+  @IsString() type!:                  'EXCHANGE' | 'COVER';
+  @IsString() applicantShiftDate!:    string;
+  @IsString() applicantShiftCode!:    string;
+  @IsString() counterpartyId!:        string;
+  @IsOptional() @IsString() counterpartyShiftDate?: string;
+  @IsOptional() @IsString() counterpartyShiftCode?: string;
 }
 
 @Controller('api/shift-exchanges')
@@ -27,14 +36,34 @@ export class ShiftExchangesController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() dto: CreateExchangeDto, @Req() req: any) {
+    const precheck = await this.svc.runPrecheck({
+      type: dto.type as 'EXCHANGE' | 'COVER',
+      applicantId: req.user.sub,
+      counterpartyId: dto.counterpartyId,
+      applicantShiftDate: dto.applicantShiftDate,
+      applicantShiftCode: dto.applicantShiftCode,
+      counterpartyShiftDate: dto.counterpartyShiftDate,
+      counterpartyShiftCode: dto.counterpartyShiftCode,
+    });
+
     const ex = await this.svc.create({
       ...dto,
-      applicantId:   req.user.sub,
+      applicantId: req.user.sub,
       applicantName: req.user.name ?? req.user.sub,
-      facilityType:  dto.facilityType ?? 'ACC_APP_TWR',
+      facilityType: dto.facilityType ?? 'ACC_APP_TWR',
+      precheckResult: precheck,
     });
     this.notify.broadcastNotification('exchange:new', { id: ex.id });
     return ex;
+  }
+
+  @Post('precheck')
+  @UseGuards(JwtAuthGuard)
+  async precheck(@Body() dto: PrecheckExchangeDto, @Req() req: any) {
+    return this.svc.runPrecheck({
+      ...dto,
+      applicantId: req.user.sub,
+    });
   }
 
   @Get('mine')
@@ -52,8 +81,17 @@ export class ShiftExchangesController {
   @Put(':id/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin', 'CHIEF')
-  approve(@Param('id') id: string, @Req() req: any) {
-    return this.svc.chiefApprove(id, req.user.sub, req.user.role ?? 'CHIEF');
+  approve(
+    @Param('id') id: string,
+    @Body() body: { override_reason?: string },
+    @Req() req: any,
+  ) {
+    return this.svc.chiefApprove(
+      id,
+      req.user.sub,
+      req.user.role ?? 'CHIEF',
+      body.override_reason,
+    );
   }
 
   @Put(':id/reject')
