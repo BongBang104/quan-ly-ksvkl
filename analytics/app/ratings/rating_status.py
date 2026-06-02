@@ -14,13 +14,32 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from app.core.domain import ALL_POSITIONS, Position, Qualification
+from app.core.domain import ALL_POSITIONS, AUXILIARY_POSITIONS, Position, Qualification
 
 
-# Ngưỡng cảnh báo mặc định (CHỈ LÀ VÍ DỤ):
+# Ngưỡng cảnh báo mặc định:
 DEFAULT_WARN_DAYS = 60          # cảnh báo nếu hết hạn trong vòng 60 ngày
 DEFAULT_CRITICAL_DAYS = 30      # nghiêm trọng nếu hết hạn trong vòng 30 ngày
 DEFAULT_MIN_COVERAGE = 2        # tối thiểu 2 người đủ năng định mỗi vị trí
+
+NOTE_AUXILIARY = (
+    "Các vị trí hiệp đồng (HDA, HDC, HDT, HDG) không có năng định riêng "
+    "và không tính trong phủ sóng này."
+)
+
+POSITION_LABELS: dict[str, str] = {
+    "APP":    "Tiếp cận (APP)",
+    "CTL":    "Đường dài nội bộ (CTL)",
+    "TWR":    "Đài chỉ huy (TWR)",
+    "GCU":    "Đài kiểm soát mặt đất (GCU)",
+    "TKT_T6": "Kíp trưởng tầng 6 (APP/CTL)",
+    "TKT_T8": "Kíp trưởng tầng 8 (TWR/GCU)",
+    "QS":     "Quân sự",
+    "HDA":    "Hiệp đồng APP",
+    "HDC":    "Hiệp đồng CTL",
+    "HDT":    "Hiệp đồng TWR",
+    "HDG":    "Hiệp đồng GCU",
+}
 
 
 @dataclass
@@ -54,10 +73,11 @@ class PositionCoverage:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "position":       self.position.value,
+            "position":        self.position.value,
+            "position_label":  POSITION_LABELS.get(self.position.value, self.position.value),
             "qualified_count": self.qualified_count,
-            "active_count":   self.active_count,
-            "is_sufficient":  self.is_sufficient,
+            "active_count":    self.active_count,
+            "is_sufficient":   self.is_sufficient,
         }
 
 
@@ -175,6 +195,7 @@ def compute_coverage(
         if q.is_full and effective:
             total_full += 1
 
+    # Chỉ báo cáo vị trí yêu cầu năng định; bỏ AUXILIARY_POSITIONS
     positions = [
         PositionCoverage(
             position=pos,
@@ -183,6 +204,7 @@ def compute_coverage(
             is_sufficient=(active[pos] >= min_required),
         )
         for pos in sorted(Position, key=lambda p: p.value)
+        if pos not in AUXILIARY_POSITIONS   # HDA/HDC/HDT/HDG không cần năng định riêng
     ]
     insufficient = [p.position.value for p in positions if not p.is_sufficient]
 

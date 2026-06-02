@@ -43,3 +43,25 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// ── Analytics helpers ──────────────────────────────────────────────────────
+
+export const reviewRosterDraft = async (payload) => {
+  const res = await api.post('/api/schedules/review-roster-draft', payload);
+  return res.data;
+};
+
+export const reviewMacroRoster = async (payload) => {
+  const res = await api.post('/api/schedules/review-macro-roster', payload);
+  return res.data;
+};
+
+export const getRosterChecklist = async (payload) => {
+  const res = await api.post('/api/schedules/roster-checklist', payload);
+  return res.data;
+};
+
+export const getMacroChecklist = async (payload) => {
+  const res = await api.post('/api/schedules/macro-checklist', payload);
+  return res.data;
+};

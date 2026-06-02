@@ -16,6 +16,7 @@ from app.ratings.rating_status import (
     DEFAULT_CRITICAL_DAYS,
     DEFAULT_MIN_COVERAGE,
     DEFAULT_WARN_DAYS,
+    NOTE_AUXILIARY,
     compute_coverage,
     compute_expiry_alerts,
 )
@@ -56,6 +57,7 @@ def expiring_ratings(
 
 class PositionCoverageOut(BaseModel):
     position:        str
+    position_label:  str = ""   # nhãn tiếng Việt, vd "Tiếp cận (APP)"
     qualified_count: int
     active_count:    int
     is_sufficient:   bool
@@ -67,6 +69,7 @@ class CoverageResponse(BaseModel):
     total_active_full:      int
     insufficient_positions: list[str]
     positions:              list[PositionCoverageOut]
+    note_auxiliary:         str = ""   # ghi chú về vị trí phụ trợ không tính trong phủ sóng
 
 
 @router.get("/coverage", response_model=CoverageResponse)
@@ -84,4 +87,5 @@ def coverage_report(
         total_active_full=d["total_active_full"],
         insufficient_positions=d["insufficient_positions"],
         positions=[PositionCoverageOut(**p) for p in d["positions"]],
+        note_auxiliary=NOTE_AUXILIARY,
     )

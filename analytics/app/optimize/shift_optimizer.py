@@ -3,10 +3,16 @@ shift_optimizer.py
 ==================
 Tối ưu hóa phân ca KSVKL bằng CP-SAT (OR-Tools).
 
+Ràng buộc cứng áp dụng theo QĐ 2288/QĐ-QLB ngày 25/3/2026:
+- Điều 13.1: nghỉ ≥ 12h giữa 2 ca
+- Điều 15.1.b: ≤ 3 ca đêm liên tiếp
+- Điều 15.1.c: nghỉ ≥ 48h sau chuỗi ca đêm
+- Điều 12.2: ≤ 6 ngày làm việc liên tiếp
+- Điều 12.1: ≤ 180h/30 ngày (khi period ≤ 30 ngày)
+
 LƯU Ý AN TOÀN:
 - Kết quả là ĐỀ XUẤT — người phụ trách phải duyệt trước khi áp dụng.
 - Phương án được xác nhận lại qua ComplianceChecker sau khi tìm được lời giải.
-- Mọi ngưỡng trong RestRuleConfig CHỈ LÀ VÍ DỤ — thay bằng số liệu VATM/CAAV/ICAO.
 """
 
 from __future__ import annotations
@@ -271,7 +277,84 @@ class ShiftOptimizer:
                         if eligible[c][s1] and eligible[c][s2]:
                             model.add_at_most_one([x[c][s1], x[c][s2]])
 
-        # Mục tiêu: công bằng — minimize (max_minutes - min_minutes)
+        # ── Ràng buộc QĐ 2288 ─────────────────────────────────────────────────
+
+        # (2) QĐ 2288 Điều 15.1.b: ≤ max_consecutive_night_shifts ca đêm liên tiếp
+        max_night = self.cfg.max_consecutive_night_shifts  # mặc định 3
+        night_idx_sorted: list[int] = sorted(
+            [s for s in range(S) if slots[s].is_night],
+            key=lambda i: slots[i].start,
+        )
+        if max_night is not None and len(night_idx_sorted) > max_night:
+            for c in range(C):
+                night_elig = [s for s in night_idx_sorted if eligible[c][s]]
+                for i in range(len(night_elig) - max_night):
+                    window = night_elig[i : i + max_night + 1]
+                    # Kiểm tra liên tiếp: mỗi cặp kề cách nhau ≤ 36h
+                    if all(
+                        (slots[window[j + 1]].start - slots[window[j]].start).total_seconds()
+                        <= 36 * 3600
+                        for j in range(len(window) - 1)
+                    ):
+                        model.add(sum(x[c][s] for s in window) <= max_night)
+
+        # (3) QĐ 2288 Điều 15.1.c: nghỉ ≥ min_rest_after_night_block_hours sau chuỗi đêm
+        rest_after_night = self.cfg.min_rest_after_night_block_hours  # mặc định 48h
+        if max_night is not None and rest_after_night is not None and len(night_idx_sorted) >= max_night:
+            for c in range(C):
+                night_elig = [s for s in night_idx_sorted if eligible[c][s]]
+                for i in range(len(night_elig) - max_night + 1):
+                    block = night_elig[i : i + max_night]
+                    if not all(
+                        (slots[block[j + 1]].start - slots[block[j]].start).total_seconds()
+                        <= 36 * 3600
+                        for j in range(len(block) - 1)
+                    ):
+                        continue
+                    block_end = slots[block[-1]].end
+                    # Slot nào bắt đầu trong vòng rest_after_night sau khi block kết thúc
+                    too_soon = [
+                        s for s in range(S)
+                        if eligible[c][s]
+                        and 0 < (slots[s].start - block_end).total_seconds() / 3600 < rest_after_night
+                    ]
+                    for s in too_soon:
+                        # sum(block) + x[c][s] ≤ max_night → nếu block đầy thì s phải = 0
+                        model.add(sum(x[c][b] for b in block) + x[c][s] <= max_night)
+
+        # (4) QĐ 2288 Điều 12.2: ≤ max_consecutive_working_days ngày làm liên tiếp
+        max_days = self.cfg.max_consecutive_working_days  # mặc định 6
+        if max_days is not None:
+            from datetime import timedelta as _td
+            all_dates_sorted = sorted({slots[s].duty_date for s in range(S)})
+            # Với mỗi cửa sổ max_days+1 ngày liên tiếp trong danh sách ngày có slot
+            for i in range(len(all_dates_sorted) - max_days):
+                win_dates = all_dates_sorted[i : i + max_days + 1]
+                if not all((win_dates[j + 1] - win_dates[j]).days == 1 for j in range(len(win_dates) - 1)):
+                    continue   # không phải chuỗi ngày liên tiếp
+                win_date_set = set(win_dates)
+                win_slots = [s for s in range(S) if slots[s].duty_date in win_date_set]
+                for c in range(C):
+                    elig_win = [s for s in win_slots if eligible[c][s]]
+                    if len(elig_win) > max_days:
+                        model.add(sum(x[c][s] for s in elig_win) <= max_days)
+
+        # (5) QĐ 2288 Điều 12.1: ≤ max_duty_hours_per_30days h trong 30 ngày liên tiếp
+        max_30h = self.cfg.max_duty_hours_per_30days  # mặc định 180h
+        if max_30h is not None and S > 0:
+            period_start_d = min(slots[s].start.date() for s in range(S))
+            period_end_d   = max(slots[s].start.date() for s in range(S))
+            period_days    = (period_end_d - period_start_d).days + 1
+            if period_days <= 30:
+                max_min_30 = int(max_30h * 60)
+                for c in range(C):
+                    model.add(
+                        sum(x[c][s] * int(slots[s].duration_hours * 60) for s in range(S) if eligible[c][s])
+                        <= max_min_30
+                    )
+            # Với period > 30 ngày: cửa sổ trượt phức tạp → bỏ qua, ComplianceChecker kiểm tra sau
+
+        # ── Mục tiêu: công bằng — minimize (max_minutes - min_minutes) ────────
         slot_min = [int(slots[s].duration_hours * 60) for s in range(S)]
         total_minutes_per_ctrl = []
         for c in range(C):
@@ -344,9 +427,10 @@ class ShiftOptimizer:
             metrics=metrics,
             solver_used="CP-SAT",
             note=(
-                "Đây là đề xuất — kíp trưởng phải duyệt trước khi áp dụng. "
-                "Mọi ngưỡng trong cấu hình chỉ là ví dụ, cần thay bằng số liệu "
-                "VATM/CAAV/ICAO chính thức."
+                "Đây là đề xuất — kíp trưởng phải duyệt trước khi áp dụng (QĐ 2288 Điều 5.1). "
+                "Áp dụng ràng buộc theo QĐ 2288/QĐ-QLB ngày 25/3/2026: "
+                "nghỉ ≥12h (Điều 13.1), ≤3 ca đêm (Điều 15.1.b), nghỉ ≥48h sau đêm (Điều 15.1.c), "
+                "≤6 ngày liên tiếp (Điều 12.2), ≤180h/30 ngày (Điều 12.1)."
             ),
         )
 

@@ -180,10 +180,12 @@ def test_insufficient_flag_below_threshold():
 
 
 def test_insufficient_positions_reported():
+    from app.core.domain import ALL_POSITIONS
     q = make_qual("E1", positions=[Position.APP], name="Alice")
     report = compute_coverage([q], as_of=TODAY, min_required=DEFAULT_MIN_COVERAGE)
-    # APP có 1 người (dưới ngưỡng mặc định 2), CTL/TWR/GCU có 0 -> tất cả insufficient
-    assert len(report.insufficient_positions) == len(list(Position))
+    # APP có 1 người (dưới ngưỡng mặc định 2), CTL/TWR/GCU/... có 0 -> tất cả insufficient
+    # Auxiliary positions (HDA/HDC/HDT/HDG) không tính trong phủ sóng
+    assert len(report.insufficient_positions) == len(ALL_POSITIONS)
 
 
 def test_total_active_full_counted():

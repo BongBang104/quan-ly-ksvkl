@@ -5,14 +5,18 @@ FastAPI analytics service — CHỈ ĐỌC.
 
 LƯU Ý AN TOÀN:
 - Dịch vụ truy cập DB ở chế độ CHỈ ĐỌC.
-- Mọi ngưỡng quy định CHỈ LÀ GIÁ TRỊ VÍ DỤ — thay bằng số liệu VATM/CAAV/ICAO thực tế.
+- Các ngưỡng pháp lý bám theo QĐ 2288/QĐ-QLB ngày 25/3/2026 (Quản lý rủi ro mệt mỏi),
+  bổ trợ bởi QĐ 2701/QĐ-QLB ngày 07/5/2024 (chế độ ca, kíp trực) và
+  QĐ 2289/QĐ-QLB ngày 25/3/2026 (Chương trình FMP).
+- Khi quy định pháp lý thay đổi, cập nhật RestRuleConfig.effective_from và các trường tương ứng.
 - Dịch vụ này HỖ TRỢ ra quyết định, KHÔNG thay thế quy trình phê duyệt chính thức.
+- Tinh thần Just Culture theo QĐ 2288 Điều 8 và QĐ 2289 Chương I.V.5.
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import compliance, fairness, optimize, ratings, roster
+from app.routers import compliance, exchange, fairness, optimize, ratings, roster, spi
 
 app = FastAPI(
     title="KSVKL Analytics",
@@ -34,6 +38,8 @@ app.include_router(fairness.router)
 app.include_router(roster.router)
 app.include_router(ratings.router)
 app.include_router(optimize.router)
+app.include_router(spi.router)
+app.include_router(exchange.router)
 
 
 @app.get("/health", tags=["health"])

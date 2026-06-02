@@ -5,8 +5,9 @@ import React, { useState, useMemo, useCallback, useEffect, useContext, useRef } 
 import RosterGrid from '../components/RosterGrid';
 import ManualAddModal from '../components/ManualAddModal';
 import { AppContext } from '../context/AppContext';
-import api from '../services/ApiService';
+import api, { reviewMacroRoster } from '../services/ApiService';
 import { DataService } from '../services/DataService';
+import ReviewResultPanel from '../components/ReviewResultPanel.jsx';
 
 const toDateKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
 const toYMDLocal = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
@@ -47,6 +48,8 @@ export default function SchedulerScreen() {
 
   const [viewMode, setViewMode] = useState('14_DAYS');
   const [startDate, setStartDate] = useState(new Date());
+  const [macroReview, setMacroReview] = useState(null);
+  const [macroReviewing, setMacroReviewing] = useState(false);
   const [startCycleTeam, setStartCycleTeam] = useState('Kíp A');
   const [selectedMoveItem, setSelectedMoveItem] = useState(null);
   const [manualModalData, setManualModalData] = useState(null);
@@ -408,6 +411,34 @@ export default function SchedulerScreen() {
       if (addNotification) addNotification('Xóa tăng cường', `Đã xóa ${item.name} khỏi tăng cường ca ${shiftCode} ngày ${dateDisp}.`, 'info');
   };
 
+  const handleMacroReview = useCallback(async () => {
+    setMacroReviewing(true);
+    setMacroReview(null);
+    try {
+      const assignments = [];
+      for (const [key, shiftCode] of Object.entries(scheduleData)) {
+        if (!shiftCode) continue;
+        const underIdx = key.indexOf('_');
+        if (underIdx === -1) continue;
+        const controllerId = key.slice(0, underIdx);
+        const dateParts = key.slice(underIdx + 1).split('-').map(Number);
+        if (dateParts.length !== 3) continue;
+        const [y, m, d] = dateParts;
+        // toDateKey dùng month 0-indexed → cộng 1 khi format ISO
+        const isoDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        assignments.push({ date: isoDate, controller_id: String(controllerId), shift_kind: shiftCode });
+      }
+      const periodStart = toYMDLocal(startDate);
+      const periodEnd   = toYMDLocal(viewEndDate);
+      const result = await reviewMacroRoster({ period_start: periodStart, period_end: periodEnd, assignments });
+      setMacroReview(result);
+    } catch (e) {
+      window.alert('Lỗi rà soát: ' + (e?.response?.data?.message ?? e.message));
+    } finally {
+      setMacroReviewing(false);
+    }
+  }, [scheduleData, startDate, viewEndDate]);
+
   const togglePublishState = async () => {
     if (!isAdmin) return;
     if (isPublished) {
@@ -506,6 +537,14 @@ export default function SchedulerScreen() {
                   <button type="button" style={{...styles.colorBtn, backgroundColor: isPublished ? '#f59e0b' : '#10b981'}} onClick={togglePublishState}>
                     <Icon name={isPublished ? "unlock" : "send"} size={14} color="#fff" />
                     <span style={styles.colorBtnText}>{isPublished ? 'Mở Khóa Lịch' : 'Phát Hành'}</span>
+                  </button>
+
+                  <button type="button"
+                          style={{...styles.colorBtn, backgroundColor: '#0ea5e9',
+                                  opacity: macroReviewing ? 0.6 : 1}}
+                          onClick={handleMacroReview} disabled={macroReviewing}>
+                    <Icon name="shield" size={14} color="#fff" />
+                    <span style={styles.colorBtnText}>{macroReviewing ? 'Đang rà soát…' : 'Rà soát chu kỳ'}</span>
                   </button>
 
                   <div style={styles.divider} />
@@ -607,6 +646,25 @@ export default function SchedulerScreen() {
         </div>
 
         <div style={{height: 40}}/>
+
+        {macroReview && (
+          <div style={{ margin: '0 16px 24px' }}>
+            <ReviewResultPanel result={macroReview} />
+            {macroReview.coverage_warnings?.length > 0 && (
+              <div style={{ marginTop: 8, padding: 12, background: '#fffbeb',
+                            border: '1px solid #fde68a', borderRadius: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 6 }}>
+                  Cảnh báo phủ sóng năng định:
+                </div>
+                {macroReview.coverage_warnings.map((w, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#78350f', marginBottom: 4 }}>
+                    • {w.message}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

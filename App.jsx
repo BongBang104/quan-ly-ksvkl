@@ -238,7 +238,7 @@ function MainApp() {
       { id: 'TEAMS',        icon: 'users',      label: 'Quản lý',    section: 'MAIN' },
       { id: 'TASKS',        icon: 'clipboard',  label: 'Nhiệm vụ',   section: 'MAIN' },
       { id: 'STATS',        icon: 'bar-chart-2',label: 'Thống kê',   section: 'MANAGE' },
-      { id: 'ANALYTICS',    icon: 'activity',   label: 'Phân tích',  section: 'MANAGE' },
+      { id: 'ANALYTICS',    icon: 'activity',   label: 'Báo cáo',    section: 'MANAGE' },
       { id: 'MANAGER_DATA', icon: 'database',   label: 'Nhân sự',    section: 'MANAGE' },
       { id: 'ACCOUNTS',     icon: 'shield',     label: 'Tài khoản',  section: 'SYSTEM' },
       { id: 'SETTINGS',     icon: 'settings',   label: 'Cài đặt',    section: 'SYSTEM' },
@@ -265,7 +265,7 @@ function MainApp() {
       case 'TEAMS':        return <TeamsScreen        {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;
       case 'MANAGER_DATA': return <ManagerDataScreen  {...p} onUpdateEmployeeId={handleUpdateEmployeeId} />;
       case 'STATS':        return <StatsScreen        {...p} scheduleData={scheduleData} />;
-      case 'ANALYTICS':    return <AnalyticsScreen    employees={employees} />;
+      case 'ANALYTICS':    return <AnalyticsScreen    employees={employees} currentUser={currentUser} />;
       case 'TASKS':        return <TasksScreen        {...p} />;
       case 'ACCOUNTS':     return <AccountManagerScreen employees={employees} setEmployees={setEmployees} settings={settings} />;
       case 'SETTINGS':     return <SettingsScreen settings={settings} setSettings={setSettings} currentUser={currentUser} />;

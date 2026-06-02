@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 import { toYMD } from '../utils/helpers';
 import { DataService } from '../services/DataService';
-import api from '../services/ApiService';
+import api, { reviewRosterDraft, getRosterChecklist } from '../services/ApiService';
+import ReviewResultPanel from './ReviewResultPanel.jsx';
 
 // Format total minutes → "HHMM" (times stored as UTC, no conversion needed)
 const fmtHMM = (min) => { const m = ((min % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + String(m % 60).padStart(2, '0'); };
@@ -30,6 +31,9 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
   const [currentDate, setCurrentDate] = useState('');
   const [currentShift, setCurrentShift] = useState('');
   const [warnings, setWarnings] = useState([]);
+  const [reviewResult, setReviewResult] = useState(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [exportingChecklist, setExportingChecklist] = useState(false);
 
   const customCols = settings?.rosterColumns?.length > 0 ? settings.rosterColumns : ['CTL', 'APP', 'TWR', 'GCU'];
   const COL_LABELS = ['GIỜ (UTC)', ...customCols];
@@ -168,6 +172,43 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
       saveToGlobal('DRAFT');
       window.alert('Thành công\nĐã lưu nháp bảng phân vị trí lên Cloud.');
   };
+
+  const handleReview = useCallback(async () => {
+      setReviewing(true);
+      setReviewResult(null);
+      try {
+          const result = await reviewRosterDraft({
+              team, shift_code: currentShift, shift_date: currentDate,
+              rows: gridData,
+          });
+          setReviewResult(result);
+      } catch (e) {
+          window.alert('Lỗi rà soát: ' + (e?.response?.data?.message ?? e.message));
+      } finally {
+          setReviewing(false);
+      }
+  }, [gridData, team, currentShift, currentDate]);
+
+  const handleExportChecklist = useCallback(async () => {
+      setExportingChecklist(true);
+      try {
+          const checklist = await getRosterChecklist({
+              team, shift_code: currentShift, shift_date: currentDate,
+              rows: gridData,
+          });
+          const { renderChecklistHtml } = await import('../utils/checklistHtml.js');
+          const w = window.open('', '_blank', 'width=960,height=900');
+          if (!w) { window.alert('Trình duyệt chặn cửa sổ mới. Cho phép pop-up và thử lại.'); return; }
+          w.document.title = `Checklist — ${team} ${currentDate} ${currentShift}`;
+          w.document.body.innerHTML = renderChecklistHtml(checklist);
+          w.document.close();
+          setTimeout(() => w.print(), 500);
+      } catch (e) {
+          window.alert('Lỗi sinh checklist: ' + (e?.response?.data?.message ?? e.message));
+      } finally {
+          setExportingChecklist(false);
+      }
+  }, [gridData, team, currentShift, currentDate]);
 
   const handlePublish = async () => {
       if (!isAdmin) return;
@@ -317,6 +358,13 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
               </div>
           </div>
 
+          {/* ReviewResultPanel hiển thị kết quả rà soát analytics */}
+          {reviewResult && (
+              <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+                  <ReviewResultPanel result={reviewResult} />
+              </div>
+          )}
+
           {isAdmin && warnings.length > 0 && (
               <div style={styles.warningArea}>
                   <div style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4}}>
@@ -328,6 +376,30 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
           )}
 
           <div style={styles.footer}>
+              {/* Nút rà soát và xuất checklist */}
+              {isAdmin && (
+                  <>
+                      <button type="button"
+                              style={{ ...styles.btnDraft, marginRight: 'auto',
+                                       borderColor: '#334155', opacity: reviewing ? 0.6 : 1 }}
+                              onClick={handleReview} disabled={reviewing || !gridData.length}>
+                          <Icon name="shield" size={14} color="#94a3b8" />
+                          <span style={{ ...styles.btnDraftText, fontSize: 12 }}>
+                              {reviewing ? 'Đang rà soát…' : 'Rà soát'}
+                          </span>
+                      </button>
+                      {reviewResult && (
+                          <button type="button"
+                                  style={{ ...styles.btnDraft, opacity: exportingChecklist ? 0.6 : 1 }}
+                                  onClick={handleExportChecklist} disabled={exportingChecklist}>
+                              <Icon name="check-square" size={14} color="#94a3b8" />
+                              <span style={{ ...styles.btnDraftText, fontSize: 12 }}>
+                                  {exportingChecklist ? 'Đang tạo…' : 'Xuất Checklist (PL I)'}
+                              </span>
+                          </button>
+                      )}
+                  </>
+              )}
               {isAdmin && status === 'DRAFT' ? (
                   <>
                       <button type="button" style={styles.btnDraft} onClick={handleDraftSave}><Icon name="save" size={16} color="#f8fafc" /><span style={styles.btnDraftText}>Lưu nháp</span></button>
