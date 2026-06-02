@@ -238,10 +238,10 @@ def test_partial_when_some_slots_unassignable():
 def test_solution_passes_compliance_checker():
     """Phương án tìm được khi chạy qua ComplianceChecker không có vi phạm CRITICAL.
 
-    Dùng ca 8 giờ (trong ngưỡng max_continuous_duty_hours=10) và khoảng cách
+    Dùng ca 8 giờ (trong ngưỡng max_designed_shift_hours=10) và khoảng cách
     đủ thời gian nghỉ giữa ca sáng và ca ngày hôm sau.
     """
-    shift_len = min(8.0, (CFG.max_continuous_duty_hours or 10.0) - 0.5)
+    shift_len = min(8.0, (CFG.max_designed_shift_hours or 10.0) - 0.5)
     min_rest  = CFG.min_rest_between_shifts_hours or 11.0
     # Ca sáng 07:00 kéo dài shift_len giờ; ca kế cách đủ min_rest
     slots = []

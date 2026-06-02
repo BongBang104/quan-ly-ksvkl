@@ -11,7 +11,21 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from datetime import timedelta
+
 from app.core.domain import Shift
+
+
+def _night_hours(shift_start, shift_end, night_start: int = 22, night_end: int = 6) -> float:
+    """Tính số giờ thực tế trong khung 22h-06h. QĐ 2288 Điều 15.1.a."""
+    total = 0.0
+    cur = shift_start
+    while cur < shift_end:
+        nxt = min(cur + timedelta(hours=1), shift_end)
+        if cur.hour >= night_start or cur.hour < night_end:
+            total += (nxt - cur).total_seconds() / 3600.0
+        cur = nxt
+    return total
 
 
 @dataclass
@@ -19,6 +33,7 @@ class ControllerStats:
     controller_id:   str
     controller_name: str
     total_hours:     float = 0.0
+    night_hours:     float = 0.0   # giờ trong khung 22h-06h (QĐ 2288 Điều 15.1.a)
     night_shifts:    int   = 0
     shift_count:     int   = 0
     duty_dates:      set   = field(default_factory=set)
@@ -32,6 +47,7 @@ class ControllerStats:
             "controller_id":   self.controller_id,
             "controller_name": self.controller_name,
             "total_hours":     round(self.total_hours, 2),
+            "night_hours":     round(self.night_hours, 1),
             "night_shifts":    self.night_shifts,
             "shift_count":     self.shift_count,
             "work_days":       self.work_days,
@@ -62,7 +78,8 @@ def compute_fairness(shifts: list[Shift]) -> FairnessSummary:
             ControllerStats(s.controller_id, s.controller_name),
         )
         st.total_hours += s.duration_hours
-        st.shift_count += 1
+        st.night_hours  += _night_hours(s.start, s.end)
+        st.shift_count  += 1
         st.duty_dates.add(s.duty_date)
         if s.is_night:
             st.night_shifts += 1

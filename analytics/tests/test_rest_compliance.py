@@ -14,6 +14,7 @@ import pytest
 from app.compliance.rest_compliance import (
     Shift, PositionSession, Position, Qualification, ALL_POSITIONS,
     AUXILIARY_POSITIONS, RestRuleConfig, ComplianceChecker, Severity, format_report,
+    ShiftKind, classify_shift_kind, OncallAssignment, check_oncall_limits,
 )
 
 CFG = RestRuleConfig()
@@ -241,13 +242,21 @@ def test_min_rest_ok_at_threshold():
 
 
 def test_continuous_duty_violation_above_threshold():
-    limit = CFG.max_continuous_duty_hours
-    assert "max_continuous_duty" in rules_in(checker().check_all([make_shift(1, BASE, limit + 1)]))
+    # Vượt ca thiết kế (10h) → max_designed_shift WARNING. QĐ 2288 Điều 11.1
+    limit = CFG.max_designed_shift_hours
+    assert "max_designed_shift" in rules_in(checker().check_all([make_shift(1, BASE, limit + 1)]))
 
 
 def test_continuous_duty_ok_at_threshold():
-    limit = CFG.max_continuous_duty_hours
-    assert [x for x in checker().check_all([make_shift(1, BASE, limit)]) if x.rule == "max_continuous_duty"] == []
+    limit = CFG.max_designed_shift_hours
+    assert [x for x in checker().check_all([make_shift(1, BASE, limit)]) if x.rule == "max_designed_shift"] == []
+
+
+def test_extended_shift_critical():
+    # Vượt ca kéo dài (12h) → max_extended_shift CRITICAL. QĐ 2288 Điều 11.3
+    limit = CFG.max_extended_shift_hours
+    v = checker().check_all([make_shift(1, BASE, limit + 1)])
+    assert any(x.rule == "max_extended_shift" and x.severity == Severity.CRITICAL for x in v)
 
 
 # ===================== Ca đêm / ngày liên tiếp (động) =====================
@@ -282,23 +291,23 @@ def test_consecutive_days_ok_at_threshold():
 
 def test_weekly_duty_violation():
     days = CFG.max_consecutive_working_days
-    h = CFG.max_continuous_duty_hours
+    h = CFG.max_designed_shift_hours   # đúng ngưỡng thiết kế — không vi phạm ca đơn lẻ
     shifts = [make_shift(i, BASE + timedelta(days=i), h) for i in range(days)]
     r = rules_in(checker().check_all(shifts))
     if days * h > CFG.max_duty_hours_per_week:
         assert "max_duty_per_week" in r
-    assert "max_consecutive_days" not in r and "max_continuous_duty" not in r
+    assert "max_consecutive_days" not in r and "max_designed_shift" not in r
 
 
-def test_28day_duty_violation():
+def test_30day_duty_violation():
     h, shifts, sid = 8.0, [], 1
     for week in range(4):
         for d in range(5):
             shifts.append(make_shift(sid, BASE + timedelta(days=week * 7 + d), h))
             sid += 1
     r = rules_in(checker().check_all(shifts))
-    if 4 * 5 * h > CFG.max_duty_hours_per_28days:
-        assert "max_duty_per_28days" in r
+    if 4 * 5 * h > CFG.max_duty_hours_per_30days:
+        assert "max_duty_per_30days" in r
     if 5 * h <= CFG.max_duty_hours_per_week:
         assert "max_duty_per_week" not in r
 
@@ -342,8 +351,8 @@ def test_format_report_no_violations():
 def test_format_report_orders_critical_first():
     over = (CFG.max_on_position_minutes + 30) / 60.0
     shifts = [
-        make_shift(1, BASE, CFG.max_continuous_duty_hours + 1),                       # CRITICAL
-        one_position_shift(2, BASE + timedelta(days=2), over, Position.TWR),          # WARNING
+        make_shift(1, BASE, CFG.max_extended_shift_hours + 1),   # CRITICAL (>12h)
+        one_position_shift(2, BASE + timedelta(days=2), over, Position.TWR),   # WARNING
     ]
     report = format_report(checker().check_all(shifts))
     assert report.index("Nghiêm trọng") < report.index("Cảnh báo")
@@ -413,3 +422,170 @@ def test_all_positions_excludes_auxiliary():
     """ALL_POSITIONS chỉ chứa vị trí yêu cầu năng định, không chứa phụ trợ."""
     assert AUXILIARY_POSITIONS.isdisjoint(ALL_POSITIONS)
     assert ALL_POSITIONS | AUXILIARY_POSITIONS == frozenset(Position)
+
+
+# ===================== ShiftKind + classify_shift_kind (V2 Mục 1.4) =====================
+
+def test_classify_shift_kind_night():
+    """Ca bắt đầu 22h → NIGHT. QĐ 2288 Điều 15.1.a."""
+    start = BASE.replace(hour=22, minute=0)
+    end   = start + timedelta(hours=8)
+    assert classify_shift_kind(start, end, CFG) == ShiftKind.NIGHT
+
+
+def test_classify_shift_kind_early():
+    """Ca bắt đầu 05h → EARLY. QĐ 2288 Điều 15.2.a."""
+    start = BASE.replace(hour=5, minute=0)
+    end   = start + timedelta(hours=8)
+    assert classify_shift_kind(start, end, CFG) == ShiftKind.EARLY
+
+
+def test_classify_shift_kind_late():
+    """Ca bắt đầu 14h, kết thúc 22h → LATE."""
+    start = BASE.replace(hour=14, minute=0)
+    end   = start + timedelta(hours=8)
+    assert classify_shift_kind(start, end, CFG) == ShiftKind.LATE
+
+
+def test_classify_shift_kind_normal():
+    """Ca bắt đầu 08h, kết thúc 14h → NORMAL."""
+    start = BASE.replace(hour=8, minute=0)
+    end   = start + timedelta(hours=6)
+    assert classify_shift_kind(start, end, CFG) == ShiftKind.NORMAL
+
+
+def test_shift_effective_kind_from_is_night():
+    """Shift.effective_kind suy từ is_night khi kind=None."""
+    s_night  = make_shift(1, BASE, 8, is_night=True)
+    s_normal = make_shift(2, BASE, 8, is_night=False)
+    assert s_night.effective_kind == ShiftKind.NIGHT
+    assert s_normal.effective_kind == ShiftKind.NORMAL
+
+
+def test_shift_effective_kind_explicit():
+    """Shift.kind ưu tiên hơn is_night."""
+    s = make_shift(1, BASE, 8, is_night=False)
+    s.kind = ShiftKind.EARLY
+    assert s.effective_kind == ShiftKind.EARLY
+
+
+# ===================== Nghỉ sau phiên (V2 Mục 1.2) ========================
+
+def test_break_after_position_day_violation():
+    """Gap < 30 phút trong ca ngày → vi phạm min_break_after_position. QĐ 2288 Điều 14.2.a."""
+    day_min = CFG.min_break_after_position_day_minutes
+    gap_min = day_min - 5
+    part = CFG.max_on_position_minutes / 60.0 / 2
+    gap_h = gap_min / 60.0
+    s = make_shift(1, BASE, part * 2 + gap_h, is_night=False, sessions=[
+        sess(Position.APP, BASE, part),
+        sess(Position.TWR, BASE + timedelta(hours=part + gap_h), part),
+    ])
+    v = checker().check_all([s])
+    assert any(x.rule == "min_break_after_position" for x in v)
+
+
+def test_break_after_position_night_violation():
+    """Gap < 45 phút trong ca đêm → vi phạm. QĐ 2288 Điều 14.2.a."""
+    night_min = CFG.min_break_after_position_night_minutes
+    gap_min = night_min - 5
+    part = CFG.max_on_position_minutes / 60.0 / 2
+    gap_h = gap_min / 60.0
+    s = make_shift(1, BASE.replace(hour=22), part * 2 + gap_h, is_night=True, sessions=[
+        sess(Position.CTL, BASE.replace(hour=22), part),
+        sess(Position.APP, BASE.replace(hour=22) + timedelta(hours=part + gap_h), part),
+    ])
+    v = checker().check_all([s])
+    assert any(x.rule == "min_break_after_position" for x in v)
+
+
+def test_break_after_position_night_ok():
+    """Gap = night_min phút trong ca đêm → không vi phạm."""
+    night_min = CFG.min_break_after_position_night_minutes
+    gap_h = night_min / 60.0
+    part = CFG.max_on_position_minutes / 60.0 / 2
+    s = make_shift(1, BASE.replace(hour=22), part * 2 + gap_h, is_night=True, sessions=[
+        sess(Position.CTL, BASE.replace(hour=22), part),
+        sess(Position.APP, BASE.replace(hour=22) + timedelta(hours=part + gap_h), part),
+    ])
+    v = checker().check_all([s])
+    assert [x for x in v if x.rule == "min_break_after_position"] == []
+
+
+# ===================== Ca sớm sau ca muộn/đêm (V2 Mục 1.5) ===============
+
+def test_early_after_night_violation():
+    """Ca EARLY ngay sau ca NIGHT → vi phạm early_after_late_or_night. QĐ 2288 Điều 15.2.b."""
+    night = make_shift(1, BASE.replace(hour=22), 8, is_night=True)
+    night.kind = ShiftKind.NIGHT
+    early_start = night.end + timedelta(hours=13)   # nghỉ 13h (> 12h), nhưng ca EARLY
+    early = make_shift(2, early_start.replace(hour=5), 8, is_night=False)
+    early.kind = ShiftKind.EARLY
+    v = checker().check_all([night, early])
+    assert any(x.rule == "early_after_late_or_night" for x in v)
+
+
+def test_early_after_normal_no_violation():
+    """Ca EARLY sau ca NORMAL → không vi phạm."""
+    normal = make_shift(1, BASE.replace(hour=8), 6, is_night=False)
+    normal.kind = ShiftKind.NORMAL
+    early_start = normal.end + timedelta(hours=14)
+    early = make_shift(2, early_start.replace(hour=5), 8, is_night=False)
+    early.kind = ShiftKind.EARLY
+    v = checker().check_all([normal, early])
+    assert [x for x in v if x.rule == "early_after_late_or_night"] == []
+
+
+# ===================== On-call limits (V2 Mục 1.3) ========================
+
+def _make_oncall(cid, name, day_offset, hours=8):
+    start = BASE + timedelta(days=day_offset)
+    return OncallAssignment(controller_id=cid, controller_name=name, start=start,
+                            end=start + timedelta(hours=hours))
+
+
+def test_oncall_4_in_7days_violation():
+    """4 lượt on-call trong 7 ngày → vi phạm max_oncall_per_7days. QĐ 2288 Điều 16.1."""
+    oncalls = [_make_oncall(1, "A", i) for i in range(4)]
+    v = check_oncall_limits(oncalls, CFG)
+    assert any(x.rule == "max_oncall_per_7days" for x in v)
+
+
+def test_oncall_3_in_7days_ok():
+    """3 lượt on-call trong 7 ngày → không vi phạm."""
+    oncalls = [_make_oncall(1, "A", i) for i in range(3)]
+    v = check_oncall_limits(oncalls, CFG)
+    assert [x for x in v if x.rule == "max_oncall_per_7days"] == []
+
+
+def test_oncall_duration_violation():
+    """Lượt on-call 25h → vi phạm max_oncall_duration. QĐ 2288 Điều 16.2."""
+    oc = _make_oncall(1, "A", 0, hours=25)
+    v = check_oncall_limits([oc], CFG)
+    assert any(x.rule == "max_oncall_duration" for x in v)
+
+
+# ===================== legal_basis không rỗng (PLAN_TAB B1.1) =============
+
+def test_violations_have_legal_basis():
+    """Các vi phạm có map pháp lý phải trả legal_basis không rỗng."""
+    # min_rest_between_shifts
+    v_rest = checker().check_all(two_shifts_with_rest(1))
+    for v in v_rest:
+        if v.rule == "min_rest_between_shifts":
+            assert v.legal_basis, f"legal_basis trống cho rule {v.rule}"
+
+    # max_on_position
+    over = (CFG.max_on_position_minutes + 30) / 60.0
+    v_pos = checker().check_all([one_position_shift(1, BASE, over, Position.TWR)])
+    for v in v_pos:
+        if v.rule == "max_on_position":
+            assert v.legal_basis, f"legal_basis trống cho rule {v.rule}"
+
+    # qualification_coverage
+    quals = {1: Qualification(1, is_full=False, positions=frozenset({Position.TWR}))}
+    h = CFG.max_on_position_minutes / 60.0 / 2
+    v_qual = checker().check_all([one_position_shift(1, BASE, h, Position.APP)], quals)
+    for v in v_qual:
+        if v.rule == "qualification_coverage":
+            assert v.legal_basis, f"legal_basis trống cho rule {v.rule}"

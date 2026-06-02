@@ -23,6 +23,7 @@ class ControllerStatsOut(BaseModel):
     controller_id:   str
     controller_name: str
     total_hours:     float
+    night_hours:     float = 0.0   # giờ trong khung 22h-06h (QĐ 2288 Điều 15.1.a)
     night_shifts:    int
     shift_count:     int
     work_days:       int

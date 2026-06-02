@@ -107,6 +107,6 @@ def test_to_dict_shape():
     d = compute_fairness(shifts).to_dict()
     assert set(d.keys()) == {"avg_hours", "std_hours", "max_delta_hours", "controllers"}
     assert set(d["controllers"][0].keys()) == {
-        "controller_id", "controller_name", "total_hours",
+        "controller_id", "controller_name", "total_hours", "night_hours",
         "night_shifts", "shift_count", "work_days",
     }

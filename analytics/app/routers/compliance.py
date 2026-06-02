@@ -29,6 +29,7 @@ class ViolationOut(BaseModel):
     controller_name:   str
     message:           str
     related_shift_ids: list[str]
+    legal_basis:       str = ""   # QĐ 2288 / QĐ 2701 citation
 
 
 class ComplianceResponse(BaseModel):
@@ -54,6 +55,7 @@ def check_compliance(
             controller_name=v.controller_name,
             message=v.message,
             related_shift_ids=[str(i) for i in v.related_shift_ids],
+            legal_basis=v.legal_basis,
         )
         for v in violations
     ]
