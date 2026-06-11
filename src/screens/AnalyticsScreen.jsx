@@ -1235,7 +1235,7 @@ function ShiftExchangeTab({ currentUser }) {
 
   // Xác định biểu mẫu dựa trên position/role của currentUser
   const pos = (currentUser?.position || '').toLowerCase();
-  const isChief = currentUser?.isChief || currentUser?.role === 'ADMIN';
+  const isChief = currentUser?.isChief || currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
   const facilityType = pos.includes('twr') && !pos.includes('app') ? 'TWR_ONLY' : 'ACC_APP_TWR';
   const formTypeLabel = isChief ? 'Vị trí trực Kíp trưởng' : facilityType === 'TWR_ONLY' ? 'KSVKL tại TWR' : 'KSVKL tại ACC/APP/TWR';
 
@@ -1868,7 +1868,7 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
       </div>
 
       {/* Group tab bar */}
-      <div style={{ backgroundColor: '#fff', display: 'flex', borderBottom: '2px solid #e2e8f0', flexShrink: 0 }}>
+      <div style={{ backgroundColor: '#fff', display: 'flex', flexWrap: 'wrap', borderBottom: '2px solid #e2e8f0', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {TAB_GROUPS.map(g => {
           const active = groupId === g.id;
           return (
@@ -1887,7 +1887,7 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
 
       {/* Sub-tab bar */}
       <div style={{ backgroundColor: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: 6,
-                    padding: '8px 12px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+                    padding: '8px 12px', borderBottom: '1px solid #e2e8f0', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {currentGroup.tabs.map(t => {
           const on = tab === t.id;
           return (

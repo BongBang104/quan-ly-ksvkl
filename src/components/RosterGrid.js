@@ -65,23 +65,33 @@ const RosterCell = React.memo((props) => {
     const allItems = [...officialItems, ...extraItems];
 
     return (
-        <button type="button"
-            style={{
-                ...styles.cell,
-                minHeight: dynamicRowHeight,
-                ...(isTargetCell && !hasSelectedEmployee && styles.cellTargetValid),
-                ...(isTargetCell && hasSelectedEmployee && styles.cellWarningHighlight),
-                ...(isTargetMode && !isTargetCell && styles.cellTargetInvalid),
-            }}
-            activeOpacity={0.7}
-            onClick={() => {
-                if (isTargetMode && roleType !== 'RESERVE') {
-                    if (isTargetCell) onExecuteMove(dateObj, shiftCode, roleType);
-                } else {
-                    onOpenManualAdd(dateObj, shiftCode, roleType);
-                }
-            }}
-        >
+      <div role="button" tabIndex={0}
+        style={{
+          ...styles.cell,
+          minHeight: dynamicRowHeight,
+          ...(isTargetCell && !hasSelectedEmployee && styles.cellTargetValid),
+          ...(isTargetCell && hasSelectedEmployee && styles.cellWarningHighlight),
+          ...(isTargetMode && !isTargetCell && styles.cellTargetInvalid),
+          cursor: 'pointer',
+        }}
+        onClick={() => {
+          if (isTargetMode && roleType !== 'RESERVE') {
+            if (isTargetCell) onExecuteMove(dateObj, shiftCode, roleType);
+          } else {
+            onOpenManualAdd(dateObj, shiftCode, roleType);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (isTargetMode && roleType !== 'RESERVE') {
+              if (isTargetCell) onExecuteMove(dateObj, shiftCode, roleType);
+            } else {
+              onOpenManualAdd(dateObj, shiftCode, roleType);
+            }
+          }
+        }}
+      >
             <div style={styles.tagContainer}>
                 {allItems.map((item, gi) => {
                     if (item.kind === 'off') {

@@ -36,14 +36,14 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
   const [exportingChecklist, setExportingChecklist] = useState(false);
 
   const customCols = settings?.rosterColumns?.length > 0 ? settings.rosterColumns : ['CTL', 'APP', 'TWR', 'GCU'];
-  const COL_LABELS = ['GIỜ (UTC)', ...customCols];
-  const COL_KEYS = ['time', ...customCols];
+  const COL_LABELS = React.useMemo(() => ['GIỜ (UTC)', ...customCols], [customCols]);
+  const COL_KEYS = React.useMemo(() => ['time', ...customCols], [customCols]);
 
   const getEmptyRow = useCallback(() => {
       const row = {};
       COL_KEYS.forEach(k => row[k] = '');
       return row;
-  }, [settings?.rosterColumns]);
+  }, [COL_KEYS]);
 
   const populateGrid = useCallback((shiftCode) => {
       const shiftConfig = settings?.shiftTypes?.find(s => s.code === shiftCode);
@@ -315,12 +315,12 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
               )}
           </div>
 
-          <div style={{ display: 'flex', ...styles.tableWrapper }}>
-              <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', ...styles.tableWrapper, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ flex: 1, minWidth: 'min-content' }}>
                   <div style={styles.table}>
                       <div style={styles.tableHeadRow}>
                           {COL_LABELS.map((label, i) => (
-                              <div key={i} style={{...styles.thCell, ...(i === 0 ? {width: 100} : {width: 70})}}>
+                              <div key={i} style={{...styles.thCell, ...(i === 0 ? {width: 120} : {width: 100})}}>
                                   <span style={styles.thText}>{label}</span>
                               </div>
                           ))}
@@ -330,7 +330,7 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
                       {gridData.map((row, rIdx) => (
                           <div key={rIdx} style={styles.tableBodyRow}>
                               {COL_KEYS.map((cKey, cIdx) => (
-                                  <div key={cKey} style={{...styles.tdCell, ...(cIdx === 0 ? {width: 100} : {width: 70})}}>
+                                  <div key={cKey} style={{...styles.tdCell, ...(cIdx === 0 ? {width: 120} : {width: 100})}}>
                                       <input
                                           style={Object.assign({}, styles.cellInput, cIdx === 0 ? styles.cellInputTime : {})}
                                           value={row[cKey]}
@@ -419,7 +419,7 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
 
 const styles = {
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  modalContainer: { backgroundColor: '#0f172a', borderRadius: 12, width: '100%', maxWidth: 1000, borderWidth: 1, borderColor: '#1e293b', boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
+  modalContainer: { backgroundColor: '#0f172a', borderRadius: 12, width: '100%', maxWidth: 1400, borderWidth: 1, borderColor: '#1e293b', boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderColor: '#1e293b' },
   headerTitle: { fontFamily: 'Times New Roman', fontSize: 18, fontWeight: 'bold', color: '#f8fafc' },
   headerSub: { fontFamily: 'Times New Roman', fontSize: 12, color: '#94a3b8', marginTop: 4 },
@@ -431,7 +431,7 @@ const styles = {
   inputControl: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 10, color: '#f8fafc', fontFamily: 'Times New Roman', fontSize: 14, textAlign: 'center' },
   rowControls: { flexDirection: 'row', gap: 8, marginLeft: 'auto' },
   iconBtn: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8 },
-  tableWrapper: { backgroundColor: '#0f172a', flex: 1, paddingLeft: 16 , paddingRight: 16 ,},
+  tableWrapper: { backgroundColor: '#0f172a', flex: 1, paddingLeft: 16 , paddingRight: 16 , overflow: 'hidden' },
   table: { borderWidth: 1, borderColor: '#334155', borderRadius: 8, overflow: 'hidden', backgroundColor: '#1e293b' },
   tableHeadRow: { flexDirection: 'row', backgroundColor: '#0f172a', borderBottomWidth: 1, borderColor: '#334155' },
   thCell: { padding: 12, borderRightWidth: 1, borderColor: '#334155', justifyContent: 'center', alignItems: 'center' },

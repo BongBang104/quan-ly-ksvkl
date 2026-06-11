@@ -15,10 +15,10 @@ const formatDateDisplay = (dateStr) => {
 export default function TeamsScreen({ currentUser, employees, settings: globalSettings, activities, setActivities, addNotification, requests, setRequests }) {
 
   // KIỂM TRA QUYỀN (CHỈ ADMIN MỚI ĐƯỢC DUYỆT ĐƠN/ĐỔI TRẠNG THÁI TỔNG)
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
 
   // LEADER CÓ QUYỀN PHÂN VỊ TRÍ TRONG CA TRỰC CHI TIẾT
-  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'LEADER';
+  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'LEADER';
 
   const settings = useMemo(() => ({
       ...globalSettings,
