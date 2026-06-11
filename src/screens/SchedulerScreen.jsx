@@ -30,8 +30,8 @@ export default function SchedulerScreen() {
       requests,
   } = useContext(AppContext);
 
-  const isAdmin = currentUser?.role === 'ADMIN';
-  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'LEADER';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
+  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'LEADER';
   const isPublishedRef = useRef(isPublished);
 
   useEffect(() => { isPublishedRef.current = isPublished; }, [isPublished]);
@@ -68,10 +68,16 @@ export default function SchedulerScreen() {
           try {
               const { data } = await api.get(`/api/schedules/${monthKey}`);
               const payload = data?.data ?? {};
-              if (payload.scheduleData) setScheduleData(payload.scheduleData);
-              if (payload.extraAssignments) setExtraAssignments(payload.extraAssignments);
+              setScheduleData(payload.scheduleData ?? {});
+              setExtraAssignments(payload.extraAssignments ?? {});
               if (payload.isPublished !== undefined) setIsPublished(payload.isPublished);
-          } catch {}
+              else setIsPublished(false);
+          } catch (error) {
+              console.error('Failed loading schedule for', monthKey, error);
+              setScheduleData({});
+              setExtraAssignments({});
+              setIsPublished(false);
+          }
       };
       loadSchedule();
   }, [monthKey]); // eslint-disable-line
@@ -442,21 +448,25 @@ export default function SchedulerScreen() {
   const togglePublishState = async () => {
     if (!isAdmin) return;
     if (isPublished) {
-        setIsPublished(false);
         try {
             await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: false } });
-        } catch {}
-        if (addNotification) addNotification('Mở khóa Lịch', 'Bạn đang ở chế độ chỉnh sửa. Nhớ Phát hành lại sau khi hoàn tất.', 'warning');
+            setIsPublished(false);
+            if (addNotification) addNotification('Mở khóa Lịch', 'Bạn đang ở chế độ chỉnh sửa. Nhớ Phát hành lại sau khi hoàn tất.', 'warning');
+        } catch (error) {
+            if (addNotification) addNotification('Lỗi mở khóa lịch', error?.response?.data?.message || error?.message || 'Không thể mở khóa lịch.', 'error');
+        }
     } else {
         try {
             await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: true } });
-        } catch {}
-        const extraCount = Object.entries(extraAssignments).filter(([k]) => !k.endsWith('_RESERVE')).reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0);
-        const extraNote = extraCount > 0 ? ` Có ${extraCount} lượt tăng cường được gọi.` : '';
-        if (addNotification) addNotification('Phát hành Lịch mới', `Đã phát hành Lịch trực tháng ${monthKey} thành công.${extraNote}`, 'info');
-        setConfirmDialog({ visible: true, title: 'Đã Phát hành Lịch', msg: `Đã phát hành Lịch trực tháng ${monthKey} thành công.${extraNote}`, onConfirm: null });
-        setIsPublished(true);
-        setSelectedMoveItem(null);
+            const extraCount = Object.entries(extraAssignments).filter(([k]) => !k.endsWith('_RESERVE')).reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0);
+            const extraNote = extraCount > 0 ? ` Có ${extraCount} lượt tăng cường được gọi.` : '';
+            if (addNotification) addNotification('Phát hành Lịch mới', `Đã phát hành Lịch trực tháng ${monthKey} thành công.${extraNote}`, 'info');
+            setConfirmDialog({ visible: true, title: 'Đã Phát hành Lịch', msg: `Đã phát hành Lịch trực tháng ${monthKey} thành công.${extraNote}`, onConfirm: null });
+            setIsPublished(true);
+            setSelectedMoveItem(null);
+        } catch (error) {
+            if (addNotification) addNotification('Lỗi phát hành lịch', error?.response?.data?.message || error?.message || 'Không thể phát hành lịch.', 'error');
+        }
     }
   };
 

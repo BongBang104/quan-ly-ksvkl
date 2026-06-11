@@ -180,7 +180,7 @@ const SmsReportModal = ({ isOpen, onClose, onSaveReport, setConfirmDialog, showT
 export default function TasksScreen() {
   const { currentUser, employees, settings, addNotification } = useContext(AppContext);
 
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
   const isLeader = currentUser?.role === 'LEADER';
   const myRoleLabel = isAdmin ? 'Quản lý' : (isLeader ? 'Kíp trưởng' : 'Nhân sự');
 

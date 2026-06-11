@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function TaskFormModal({ isOpen, onClose, onSave, settings, employees, currentUser }) {
   // PHÂN QUYỀN CỨNG NHẮC DỰA VÀO CƠ SỞ DỮ LIỆU
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
   const isLeader = currentUser?.role === 'LEADER';
   const isStaff = currentUser?.role === 'STAFF';
 

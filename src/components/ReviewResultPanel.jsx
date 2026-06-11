@@ -21,19 +21,21 @@ function ViolationRow({ v }) {
       display: 'flex', alignItems: 'flex-start', gap: 12,
       padding: '10px 14px', borderBottom: '1px solid #f1f5f9',
       borderLeft: `4px solid ${s.dot}`,
+      flexWrap: 'wrap',
     }}>
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, flexShrink: 0,
+        fontSize: 10, fontWeight: 700, padding: '6px 8px', borderRadius: 5,
+        flex: '0 0 120px',
         marginTop: 2,
         backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}`,
       }}>
         {SEV_LABEL[v.severity] || v.severity}
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: '1 1 auto', minWidth: 0, minHeight: 1 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>
           {v.controller_name || v.controller_id}
         </div>
-        <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.45 }}>{v.message}</div>
+        <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.45, overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{v.message}</div>
         {v.legal_basis && (
           <span style={{
             display: 'inline-block', marginTop: 5,
@@ -87,10 +89,11 @@ export default function ReviewResultPanel({ result, style }) {
 
       {/* Unknown abbreviations warning */}
       {unknown_abbreviations.length > 0 && (
-        <div style={{
-          padding: '8px 14px', backgroundColor: '#fffbeb',
-          borderBottom: '1px solid #fde68a', fontSize: 12, color: '#92400e',
-        }}>
+            <div style={{
+              padding: '8px 14px', backgroundColor: '#fffbeb',
+              borderBottom: '1px solid #fde68a', fontSize: 12, color: '#92400e',
+              overflowWrap: 'anywhere', wordBreak: 'break-word',
+            }}>
           Ký hiệu chưa nhận ra (có thể là OJTI/nhân sự hỗ trợ ngoài kíp):&nbsp;
           <strong>{unknown_abbreviations.join(', ')}</strong>
         </div>
@@ -102,7 +105,7 @@ export default function ReviewResultPanel({ result, style }) {
           Không phát hiện vi phạm quy định trong bảng phân vị trí này.
         </div>
       ) : (
-        <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 300, overflowY: 'auto', paddingBottom: 8 }}>
           {critical.map((v, i) => <ViolationRow key={`c${i}`} v={v} />)}
           {warnings.map((v, i) => <ViolationRow key={`w${i}`} v={v} />)}
         </div>

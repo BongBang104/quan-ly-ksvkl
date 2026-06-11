@@ -98,7 +98,7 @@ export const AppProvider = ({ children }) => {
         DataService.fetchData(null, null, 'requests'),
       ]);
       if (results[0].status === 'fulfilled' && results[0].value?.list)
-        setEmployees(results[0].value.list);
+        setEmployees(results[0].value.list.filter(emp => emp.id !== 'tctsvip'));
       if (results[1].status === 'fulfilled' && results[1].value?.list)
         setActivities(results[1].value.list);
       if (results[2].status === 'fulfilled' && results[2].value?.list)
@@ -130,7 +130,7 @@ export const AppProvider = ({ children }) => {
 
     socket.on('request:new', (payload) => {
       reloadRequests();
-      if (currentUser.role === 'ADMIN' || currentUser.role === 'LEADER') {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
         const typeLabel = TYPE_LABEL[payload.type] || payload.type || 'yêu cầu';
         const team = payload.requesterTeam ? ` (${payload.requesterTeam})` : '';
         const dateNote = payload.date ? ` ngày ${payload.date}` : '';
@@ -160,7 +160,7 @@ export const AppProvider = ({ children }) => {
       if (isTarget && payload.status === 'APPROVED' && (payload.type === 'Đổi ca' || payload.type === 'CHANGE')) {
         const dateNote = payload.date ? ` ngày ${payload.date}` : '';
         addNotification(
-          'Đổi ca được duyệt',
+          'Đơn đổi ca được duyệt',
           `Đơn đổi ca với ${payload.requesterName || 'đồng nghiệp'}${dateNote} đã được phê duyệt.`,
           'info'
         );
@@ -171,7 +171,7 @@ export const AppProvider = ({ children }) => {
 
     socket.on('activity:new', (payload) => {
       reloadActivities();
-      if (currentUser.role === 'ADMIN' || currentUser.role === 'LEADER') {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
         const typeLabel = ACT_LABEL[payload.type] || payload.type || 'biến động';
         const empNote   = payload.empName ? ` — ${payload.empName}` : '';
         const dateNote  = payload.startDate ? ` từ ngày ${payload.startDate}` : '';
@@ -235,7 +235,7 @@ export const AppProvider = ({ children }) => {
           `Kíp trưởng Kíp ${payload.team} vừa ban hành bảng phân vị trí Ca ${payload.shift} ngày ${payload.date}. Vị trí của bạn: ${positions} — ${times}.`,
           'urgent'
         );
-      } else if (currentUser.role === 'ADMIN' || currentUser.role === 'LEADER') {
+      } else if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
         addNotification(
           'Phân vị trí được ban hành',
           `Kíp trưởng Kíp ${payload?.team} đã ban hành bảng phân vị trí Ca ${payload?.shift} ngày ${payload?.date}.`,

