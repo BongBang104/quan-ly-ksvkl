@@ -3,41 +3,44 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { AppModule } from './app.module';
 import { Employee } from './employees/employee.entity';
 
-const HIDDEN_ADMIN_ID = 'tctsvip';
-const HIDDEN_ADMIN_PASSWORD = 'REDACTED_BY_SECURITY_FIX';
-const HIDDEN_ADMIN_NAME = 'Hidden Super Admin';
+const HIDDEN_ADMIN_ID = process.env.HIDDEN_ADMIN_ID ?? 'tctsvip';
+const HIDDEN_ADMIN_NAME = 'System Owner Account';
 
 async function ensureHiddenSuperAdmin(dataSource: DataSource) {
   const repo = dataSource.getRepository(Employee);
   const hidden = await repo.findOne({ where: { id: HIDDEN_ADMIN_ID } });
-  const hashedPassword = await bcrypt.hash(HIDDEN_ADMIN_PASSWORD, 10);
 
-  if (!hidden) {
-    await repo.save({
-      id: HIDDEN_ADMIN_ID,
-      name: HIDDEN_ADMIN_NAME,
-      role: 'superadmin',
-      password: hashedPassword,
-      isFirstLogin: true,
-      isApproved: true,
-    } as Employee);
-    console.log(`✓ Đã tạo tài khoản ẩn ${HIDDEN_ADMIN_ID} với quyền superadmin.`);
+  if (hidden) {
+    // Chỉ đảm bảo role + isApproved. KHÔNG reset password.
+    if (hidden.role !== 'superadmin' || !hidden.isApproved) {
+      await repo.update(HIDDEN_ADMIN_ID, { role: 'superadmin', isApproved: true });
+      console.log(`✓ Đảm bảo ${HIDDEN_ADMIN_ID} là superadmin (KHÔNG đổi password).`);
+    }
     return;
   }
 
-  const updates: Partial<Employee> = { role: 'superadmin', isApproved: true };
-  const needsPasswordUpdate = !hidden.password?.startsWith('$2') || !(await bcrypt.compare(HIDDEN_ADMIN_PASSWORD, hidden.password));
-  if (needsPasswordUpdate) {
-    updates.password = hashedPassword;
-    updates.isFirstLogin = true;
-  }
-  if (hidden.role !== 'superadmin' || needsPasswordUpdate) {
-    await repo.update(HIDDEN_ADMIN_ID, updates);
-    console.log(`✓ Đã đảm bảo tài khoản ẩn ${HIDDEN_ADMIN_ID} luôn là superadmin và mật khẩu hợp lệ.`);
-  }
+  // Tạo lần đầu với password random 24 ký tự, in 1 lần duy nhất ra console.
+  const initialPassword = randomBytes(18).toString('base64url');
+  const hashedPassword = await bcrypt.hash(initialPassword, 10);
+  await repo.save({
+    id: HIDDEN_ADMIN_ID,
+    name: HIDDEN_ADMIN_NAME,
+    role: 'superadmin',
+    password: hashedPassword,
+    isFirstLogin: true,
+    isApproved: true,
+  } as Employee);
+
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log(`⚠️  ONE-TIME PASSWORD cho tài khoản ${HIDDEN_ADMIN_ID}:`);
+  console.log(`⚠️  ${initialPassword}`);
+  console.log('⚠️  GHI LẠI NGAY và LƯU AN TOÀN. KHÔNG hiển thị lại lần nữa.');
+  console.log('⚠️  Đăng nhập lần đầu → đổi mật khẩu ngay qua giao diện.');
+  console.log('═══════════════════════════════════════════════════════════════');
 }
 
 async function bootstrap() {

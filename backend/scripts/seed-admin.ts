@@ -26,11 +26,11 @@ async function main() {
   const repo = ds.getRepository(Employee);
 
   const adminExisting = await repo.findOne({ where: { id: 'admin' } });
-  const tctsvipExisting = await repo.findOne({ where: { id: 'tctsvip' } });
+  const hiddenAdminId = process.env.HIDDEN_ADMIN_ID ?? 'tctsvip';
+  const tctsvipExisting = await repo.findOne({ where: { id: hiddenAdminId } });
 
   const plainAdmin = process.env.ADMIN_INITIAL_PASSWORD ?? randomBytes(12).toString('base64url');
   const adminHash = await bcrypt.hash(plainAdmin, 10);
-  const tctsvipHash = await bcrypt.hash('REDACTED_BY_SECURITY_FIX', 10);
 
   if (!adminExisting) {
     await repo.save({
@@ -50,24 +50,26 @@ async function main() {
     console.log('Tài khoản admin đã tồn tại — bỏ qua.');
   }
 
+  // Owner account được tạo tự động bởi backend khi khởi động lần đầu.
+  // seed-admin.ts chỉ tạo nếu hoàn toàn chưa tồn tại, với random password.
   if (!tctsvipExisting) {
+    const plainOwner = randomBytes(18).toString('base64url');
+    const ownerHash = await bcrypt.hash(plainOwner, 10);
     await repo.save({
-      id: 'tctsvip',
-      name: 'Hidden Super Admin',
+      id: hiddenAdminId,
+      name: 'System Owner Account',
       role: 'superadmin',
-      password: tctsvipHash,
+      password: ownerHash,
       isFirstLogin: true,
       isApproved: true,
     } as Employee);
-    console.log('✓ Đã tạo tài khoản ẩn tctsvip với mật khẩu REDACTED_BY_SECURITY_FIX.');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`⚠️  ONE-TIME PASSWORD cho tài khoản ${hiddenAdminId}:`);
+    console.log(`⚠️  ${plainOwner}`);
+    console.log('⚠️  GHI LẠI NGAY và LƯU AN TOÀN. KHÔNG hiển thị lại lần nữa.');
+    console.log('═══════════════════════════════════════════════════════════════');
   } else {
-    await repo.update('tctsvip', {
-      role: 'superadmin',
-      password: tctsvipHash,
-      isFirstLogin: true,
-      isApproved: true,
-    });
-    console.log('✓ Đã cập nhật tài khoản ẩn tctsvip để đảm bảo là superadmin và mật khẩu mới.');
+    console.log(`Tài khoản ${hiddenAdminId} đã tồn tại — KHÔNG reset password.`);
   }
 
   await ds.destroy();

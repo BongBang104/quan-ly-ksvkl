@@ -98,7 +98,7 @@ export const AppProvider = ({ children }) => {
         DataService.fetchData(null, null, 'requests'),
       ]);
       if (results[0].status === 'fulfilled' && results[0].value?.list)
-        setEmployees(results[0].value.list.filter(emp => emp.id !== 'tctsvip'));
+        setEmployees(results[0].value.list.filter(emp => emp.role !== 'superadmin'));
       if (results[1].status === 'fulfilled' && results[1].value?.list)
         setActivities(results[1].value.list);
       if (results[2].status === 'fulfilled' && results[2].value?.list)

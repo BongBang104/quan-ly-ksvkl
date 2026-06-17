@@ -50,7 +50,7 @@ export default function SettingsScreen({ settings, setSettings, currentUser }) {
     const [isSyncing, setIsSyncing] = useState(false);
     const [newShiftForm, setNewShiftForm] = useState({ code: '', label: '', startTime: '07:00', endTime: '19:00' });
 
-    const isSuperAdmin = currentUser?.id === 'tctsvip';
+    const isSuperAdmin = currentUser?.role === 'superadmin';
 
     const [networkConfig, setNetworkConfig] = useState({
         apiBaseUrl: settings.apiBaseUrl || 'http://localhost:3000',
@@ -275,7 +275,7 @@ export default function SettingsScreen({ settings, setSettings, currentUser }) {
         <div style={styles.tabContent}>
             {isSuperAdmin && (
                 <div style={styles.card}>
-                    <span style={styles.cardTitle}><Icon name="shield" size={16}/> Cấu hình Mạng & Lưu trữ (Dành riêng tctsvip)</span>
+                    <span style={styles.cardTitle}><Icon name="shield" size={16}/> Cấu hình Mạng & Lưu trữ (Dành riêng superadmin)</span>
 
                     <div style={styles.configInputBox}>
                         <span style={styles.label}>URL NestJS API Server</span>
