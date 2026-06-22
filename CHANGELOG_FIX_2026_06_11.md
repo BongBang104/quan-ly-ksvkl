@@ -2,13 +2,13 @@
 
 ## Z1 · CRITICAL — Xóa mật khẩu cứng backdoor `tctsvip`
 
-**Vấn đề:** Account `tctsvip` được tạo với mật khẩu plain-text `Tctsdn@123` hard-code trong
+**Vấn đề:** Account `tctsvip` được tạo với mật khẩu plain-text `<REDACTED>` hard-code trong
 `main.ts`, `seed-admin.ts`. Vi phạm quy ước bảo mật dự án và OWASP A07.
 
 **Fix:**
 - `backend/src/main.ts` — `ensureHiddenSuperAdmin()` dùng `randomBytes(18).toString('base64url')`
   để sinh mật khẩu ngẫu nhiên **chỉ một lần** khi khởi tạo; in ra console, không bao giờ reset.
-- `backend/scripts/seed-admin.ts` — tương tự, không còn `bcrypt.hash('Tctsdn@123')`.
+- `backend/scripts/seed-admin.ts` — tương tự, không còn `bcrypt.hash('<REDACTED>')`.
 - `backend/src/employees/employees.service.ts` — dùng `process.env.HIDDEN_ADMIN_ID` thay literal.
 - `src/context/AppContext.jsx` — lọc superadmin bằng `role !== 'superadmin'` (không phụ thuộc ID).
 - `src/screens/SettingsScreen.jsx` — kiểm tra `role === 'superadmin'` thay vì so sánh ID.
@@ -17,7 +17,7 @@
 
 ## Z2 · CRITICAL — Xóa mật khẩu khỏi toàn bộ git history
 
-**Fix:** Dùng `git filter-repo --replace-text` viết lại 6 commits (xóa literal `Tctsdn@123`).
+**Fix:** Dùng `git filter-repo --replace-text` viết lại 6 commits (xóa literal `&lt;REDACTED&gt;`).
 Force-push lên remote. Lưu ý: remote phải được thêm lại sau mỗi lần filter-repo chạy.
 
 ---

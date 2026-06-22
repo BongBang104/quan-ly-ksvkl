@@ -163,7 +163,7 @@ const RosterCell = React.memo((props) => {
                     }
                 })}
             </div>
-        </button>
+        </div>
     );
 }, (prev, next) => {
     if (prev.isHighlightEnabled !== next.isHighlightEnabled) return false;
