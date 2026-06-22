@@ -41,12 +41,12 @@ export class ShiftHandoversController {
   @Put(':id/sign-outgoing')
   @UseGuards(JwtAuthGuard)
   signOutgoing(@Param('id') id: string, @Req() req: any) {
-    return this.svc.signOutgoing(id, req.user.sub, req.user.name ?? req.user.sub);
+    return this.svc.signOutgoing(id, req.user.id, req.user.name ?? req.user.id);
   }
 
   @Put(':id/sign-incoming')
   @UseGuards(JwtAuthGuard)
   signIncoming(@Param('id') id: string, @Req() req: any) {
-    return this.svc.signIncoming(id, req.user.sub, req.user.name ?? req.user.sub);
+    return this.svc.signIncoming(id, req.user.id, req.user.name ?? req.user.id);
   }
 }

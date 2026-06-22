@@ -38,7 +38,7 @@ export class ShiftExchangesController {
   async create(@Body() dto: CreateExchangeDto, @Req() req: any) {
     const precheck = await this.svc.runPrecheck({
       type: dto.type as 'EXCHANGE' | 'COVER',
-      applicantId: req.user.sub,
+      applicantId: req.user.id,
       counterpartyId: dto.counterpartyId,
       applicantShiftDate: dto.applicantShiftDate,
       applicantShiftCode: dto.applicantShiftCode,
@@ -48,8 +48,8 @@ export class ShiftExchangesController {
 
     const ex = await this.svc.create({
       ...dto,
-      applicantId: req.user.sub,
-      applicantName: req.user.name ?? req.user.sub,
+      applicantId: req.user.id,
+      applicantName: req.user.name ?? req.user.id,
       facilityType: dto.facilityType ?? 'ACC_APP_TWR',
       precheckResult: precheck,
     });
@@ -62,20 +62,20 @@ export class ShiftExchangesController {
   async precheck(@Body() dto: PrecheckExchangeDto, @Req() req: any) {
     return this.svc.runPrecheck({
       ...dto,
-      applicantId: req.user.sub,
+      applicantId: req.user.id,
     });
   }
 
   @Get('mine')
   @UseGuards(JwtAuthGuard)
   findPending(@Req() req: any) {
-    return this.svc.findPending(req.user.sub);
+    return this.svc.findPending(req.user.id);
   }
 
   @Put(':id/agree')
   @UseGuards(JwtAuthGuard)
   agree(@Param('id') id: string, @Req() req: any) {
-    return this.svc.counterpartyAgree(id, req.user.sub);
+    return this.svc.counterpartyAgree(id, req.user.id);
   }
 
   @Put(':id/approve')
@@ -88,7 +88,7 @@ export class ShiftExchangesController {
   ) {
     return this.svc.chiefApprove(
       id,
-      req.user.sub,
+      req.user.id,
       req.user.role ?? 'CHIEF',
       body.override_reason,
     );

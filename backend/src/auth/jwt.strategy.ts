@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   // Payload đã được xác thực bởi passport — chỉ cần return để gắn vào request.user
-  validate(payload: { sub: string; role: string }) {
-    return { id: payload.sub, role: payload.role };
+  validate(payload: { sub: string; role: string; name?: string }) {
+    return { id: payload.sub, role: payload.role, name: payload.name };
   }
 }

@@ -41,7 +41,7 @@ export class FatigueReportsController {
       ...dto,
       shiftStart: dto.shiftStart ? new Date(dto.shiftStart) : undefined,
       shiftEnd:   dto.shiftEnd   ? new Date(dto.shiftEnd)   : undefined,
-      reporterId: req.user?.sub ?? null,
+      reporterId: req.user?.id ?? null,
     });
     this.notify.broadcastNotification('fatigue:new', {
       anonCode: report.anonCode,
@@ -53,7 +53,7 @@ export class FatigueReportsController {
   @Get('mine')
   @UseGuards(JwtAuthGuard)
   findMine(@Req() req: any) {
-    return this.svc.findMine(req.user.sub);
+    return this.svc.findMine(req.user.id);
   }
 
   @Get('for-chief')
@@ -67,7 +67,7 @@ export class FatigueReportsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin', 'CHIEF')
   ack(@Param('id') id: string, @Req() req: any) {
-    return this.svc.acknowledge(id, req.user.sub);
+    return this.svc.acknowledge(id, req.user.id);
   }
 
   @Get('summary')

@@ -26,7 +26,7 @@ export class AuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _pw, ...user } = emp;
-    const token = this.jwt.sign({ sub: emp.id, role: emp.role });
+    const token = this.jwt.sign({ sub: emp.id, role: emp.role, name: emp.name });
     return { token, user };
   }
 
