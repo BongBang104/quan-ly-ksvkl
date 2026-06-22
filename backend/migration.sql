@@ -215,3 +215,32 @@ CREATE TABLE IF NOT EXISTS shift_handovers (
 );
 
 CREATE INDEX IF NOT EXISTS idx_handovers_team_date ON shift_handovers(team, "handoverDate");
+
+-- ─── Shifts — populate khi admin Publish schedule (C2 fix) ─────────────────
+-- Dùng bởi compliance/fairness/optimize cấp ca chi tiết.
+
+CREATE TABLE IF NOT EXISTS shifts (
+  id               VARCHAR PRIMARY KEY,
+  "monthKey"       VARCHAR NOT NULL,
+  "controllerId"   VARCHAR NOT NULL,
+  "controllerName" VARCHAR NOT NULL,
+  "shiftCode"      VARCHAR NOT NULL,
+  start            TIMESTAMPTZ NOT NULL,
+  "end"            TIMESTAMPTZ NOT NULL,
+  "isNight"        BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_shifts_month_key  ON shifts("monthKey");
+CREATE INDEX IF NOT EXISTS idx_shifts_controller ON shifts("controllerId");
+
+-- ─── Shift Position Sessions — DetailedRosterModal lưu chi tiết phân vị trí ─
+
+CREATE TABLE IF NOT EXISTS shift_position_sessions (
+  id        VARCHAR PRIMARY KEY,
+  "shiftId" VARCHAR NOT NULL,
+  position  VARCHAR NOT NULL,
+  start     TIMESTAMPTZ NOT NULL,
+  "end"     TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_shift ON shift_position_sessions("shiftId");

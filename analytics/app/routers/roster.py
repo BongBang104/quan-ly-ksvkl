@@ -319,6 +319,15 @@ def review_macro(draft: Any) -> Any:
     return review_macro_draft(parsed)
 
 
+@router.post("/macro/fairness")
+def review_macro_fairness(draft: Any) -> dict:
+    """Tính công bằng phân ca từ MacroRosterDraft (scheduleData cấp tháng). C3 fix."""
+    from app.routers.schemas_macro import MacroRosterDraft
+    from app.fairness.fairness_macro import compute_fairness_from_macro
+    parsed = MacroRosterDraft(**draft) if isinstance(draft, dict) else draft
+    return compute_fairness_from_macro(parsed)
+
+
 @router.post("/macro/checklist")
 def get_macro_checklist(draft: Any) -> dict:
     """Sinh checklist QĐ 2288 Phụ lục I cấp tháng."""

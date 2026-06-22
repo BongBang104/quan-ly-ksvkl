@@ -60,4 +60,42 @@ export class AnalyticsClient {
       throw new ServiceUnavailableException('Dịch vụ phân tích chưa sẵn sàng.');
     }
   }
+
+  async checkCompliance(payload: unknown): Promise<unknown> {
+    return this._post('/analytics/compliance/check', payload);
+  }
+
+  async getFairnessSummary(payload: unknown): Promise<unknown> {
+    return this._post('/analytics/fairness/summary', payload);
+  }
+
+  async getRatingsExpiring(days: number): Promise<unknown> {
+    return this._get(`/analytics/ratings/expiring?days=${days}`);
+  }
+
+  async getRatingsCoverage(): Promise<unknown> {
+    return this._get('/analytics/ratings/coverage');
+  }
+
+  async optimizeRoster(payload: unknown): Promise<unknown> {
+    return this._post('/analytics/optimize/roster', payload);
+  }
+
+  async getMacroFairness(payload: unknown): Promise<unknown> {
+    return this._post('/analytics/roster/macro/fairness', payload);
+  }
+
+  private async _get<T>(path: string): Promise<T> {
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Analytics ${path} → ${res.status}: ${text}`);
+      }
+      return res.json() as Promise<T>;
+    } catch (err: any) {
+      this.log.error(`Analytics call failed [${path}]: ${err?.message}`);
+      throw new ServiceUnavailableException('Dịch vụ phân tích chưa sẵn sàng.');
+    }
+  }
 }

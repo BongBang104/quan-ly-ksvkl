@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '../components/Icon.jsx';
 import Spinner from '../components/Spinner.jsx';
-import analyticsApi from '../services/AnalyticsService';
 import api, { getMacroChecklist } from '../services/ApiService';
 import ChecklistViewer from '../components/ChecklistViewer.jsx';
 import KssScale        from '../components/KssScale.jsx';
@@ -251,9 +250,7 @@ function ComplianceTab() {
   const run = async () => {
     setLoading(true); setErr(null); setRes(null);
     try {
-      const { data } = await analyticsApi.post('/analytics/compliance/check', {
-        month_key: mk, include_report: false,
-      });
+      const { data } = await api.get(`/api/schedules/macro-compliance/${mk}`);
       setRes(data);
     } catch (e) {
       setErr(apiErr(e));
@@ -327,7 +324,7 @@ function FairnessTab() {
   const run = async () => {
     setLoading(true); setErr(null); setRes(null);
     try {
-      const { data } = await analyticsApi.post('/analytics/fairness/summary', { month_key: mk });
+      const { data } = await api.get(`/api/schedules/macro-fairness/${mk}`);
       setRes(data);
     } catch (e) {
       setErr(apiErr(e));
@@ -443,8 +440,8 @@ function QualificationsTab() {
     setLoading(true); setErr(null);
     try {
       const [aRes, cRes] = await Promise.all([
-        analyticsApi.get(`/analytics/ratings/expiring?days=${daysAhead}`),
-        analyticsApi.get('/analytics/ratings/coverage'),
+        api.get(`/api/schedules/ratings-expiring?days=${daysAhead}`),
+        api.get('/api/schedules/ratings-coverage'),
       ]);
       setAlerts(aRes.data);
       setCoverage(cRes.data);
@@ -624,7 +621,7 @@ function OptimizerTab({ employees = [] }) {
     if (sel.size === 0)   { setErr('Chọn ít nhất một KSVKL.');   return; }
     setLoading(true); setErr(null); setRes(null);
     try {
-      const { data } = await analyticsApi.post('/analytics/optimize/roster', {
+      const { data } = await api.post('/api/schedules/optimize-roster', {
         slots: buildSlots(),
         controllers: qualified.filter(e => sel.has(String(e.id))).map(e => ({
           controller_id:    String(e.id),
@@ -1012,6 +1009,8 @@ function FactorGroup({ title, options, selected, onChange }) {
 
 function FatigueReportTab({ currentUser }) {
   const [view, setView] = useState('form');
+  const isChief = currentUser?.isChief || ['ADMIN', 'superadmin', 'CHIEF'].includes(currentUser?.role);
+  const isAdmin = ['ADMIN', 'superadmin'].includes(currentUser?.role);
   const [facility, setFacility] = useState('');
   const [shiftType, setShiftType] = useState('');
   const [shiftStart, setShiftStart] = useState('');
@@ -1058,10 +1057,10 @@ function FatigueReportTab({ currentUser }) {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 800 }}>
+    <div style={{ padding: 20, maxWidth: 900 }}>
       {/* Just Culture disclaimer */}
       <div style={{ padding: 16, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
-                    borderRadius: 8, marginBottom: 24 }}>
+                    borderRadius: 8, marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#0c4a6e', marginBottom: 6 }}>
           Báo cáo mệt mỏi — Văn hóa An toàn Công bằng (Just Culture)
         </div>
@@ -1071,7 +1070,29 @@ function FatigueReportTab({ currentUser }) {
         </div>
       </div>
 
-      {submitResult ? (
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 12, flexWrap: 'wrap' }}>
+        {[
+          { id: 'form', label: 'Gửi báo cáo mới' },
+          { id: 'mine', label: 'Lịch sử của tôi' },
+          ...(isChief ? [{ id: 'forChief', label: 'Cần xử lý' }] : []),
+          ...(isAdmin ? [{ id: 'summary', label: 'Tổng hợp ẩn danh' }] : []),
+        ].map(t => (
+          <button key={t.id} onClick={() => setView(t.id)} style={{
+            padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            color: view === t.id ? '#fff' : '#475569',
+            backgroundColor: view === t.id ? '#2563eb' : '#fff',
+            border: '1px solid ' + (view === t.id ? '#2563eb' : '#e2e8f0'),
+            borderRadius: 6,
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {view === 'mine'     && <FatigueMineList />}
+      {view === 'forChief' && isChief && <FatigueForChiefList />}
+      {view === 'summary'  && isAdmin  && <FatigueSummary />}
+
+      {view === 'form' && (submitResult ? (
         <div style={{ padding: 24, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
                       borderRadius: 12, textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
@@ -1206,10 +1227,159 @@ function FatigueReportTab({ currentUser }) {
             <span style={{ marginLeft: 8 }}>{submitting ? 'Đang gửi…' : 'Gửi báo cáo'}</span>
           </button>
         </>
-      )}
+      ))}
     </div>
   );
 }
+
+// ─── Fatigue helper components (M1) ──────────────────────────────────────────
+
+function FatigueMineList() {
+  const [reports, setReports] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await api.get('/api/fatigue-reports/mine'); setReports(data); }
+      catch (e) { console.error(e); } finally { setLoading(false); }
+    })();
+  }, []);
+  if (loading) return <Spinner size={32} color="#2563eb" />;
+  if (!reports?.length) return <div style={{ color: '#64748b', padding: 16 }}>Bạn chưa gửi báo cáo mệt mỏi nào.</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {reports.map(r => (
+        <div key={r.id} style={{ padding: 14, backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <strong style={{ fontFamily: 'Courier New' }}>{r.anonCode}</strong>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4,
+                           backgroundColor: _fatStatusBg(r.status), color: _fatStatusText(r.status) }}>
+              {_fatStatusLabel(r.status)}
+            </span>
+          </div>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            KSS: <strong>{r.kssScore}</strong> · Cơ sở: {r.facility || '—'} ·
+            Thời điểm: {new Date(r.createdAt).toLocaleString('vi-VN')}
+          </div>
+          {r.acknowledgedAt && (
+            <div style={{ fontSize: 12, color: '#15803d', marginTop: 6 }}>
+              ✓ Kíp trưởng đã xác nhận: {new Date(r.acknowledgedAt).toLocaleString('vi-VN')}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FatigueForChiefList() {
+  const [reports, setReports] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [ackingId, setAckingId] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const { data } = await api.get('/api/fatigue-reports/for-chief'); setReports(data); }
+    catch (e) { console.error(e); } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const handleAck = async (id) => {
+    setAckingId(id);
+    try { await api.put(`/api/fatigue-reports/${id}/acknowledge`); await load(); }
+    catch (e) { window.alert('Lỗi xác nhận: ' + (e?.response?.data?.message ?? e.message)); }
+    finally { setAckingId(null); }
+  };
+
+  if (loading) return <Spinner size={32} color="#2563eb" />;
+  if (!reports?.length) return <div style={{ color: '#64748b', padding: 16 }}>Không có báo cáo cần xử lý.</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {reports.map(r => (
+        <div key={r.id} style={{ padding: 14, backgroundColor: '#fff',
+          border: '1px solid ' + (r.status === 'submitted' ? '#fcd34d' : '#e2e8f0'),
+          borderLeft: '4px solid ' + (r.kssScore >= 7 ? '#dc2626' : '#fcd34d'), borderRadius: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <strong style={{ fontFamily: 'Courier New' }}>{r.anonCode}</strong>
+            <span style={{ fontSize: 13 }}>KSS = <strong style={{ color: r.kssScore >= 7 ? '#dc2626' : '#475569' }}>{r.kssScore}</strong></span>
+          </div>
+          <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+            <div>Cơ sở: <strong>{r.facility || '—'}</strong></div>
+            <div>Thời điểm mệt: {r.fatigueOnset}</div>
+            <div style={{ marginTop: 6 }}>{r.impactDescription}</div>
+            {r.factorsSchedule?.length > 0 && (
+              <div style={{ marginTop: 6, fontSize: 12 }}><strong>Yếu tố lịch:</strong> {r.factorsSchedule.join(', ')}</div>
+            )}
+            {r.immediateAction && (
+              <div style={{ marginTop: 6, fontSize: 12, fontStyle: 'italic' }}>Hành động tức thời: {r.immediateAction}</div>
+            )}
+          </div>
+          {r.status === 'submitted' && (
+            <button onClick={() => handleAck(r.id)} disabled={ackingId === r.id}
+                    style={{ padding: '6px 12px', backgroundColor: '#16a34a', color: '#fff',
+                             border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+              {ackingId === r.id ? 'Đang xử lý…' : '✓ Tôi đã xem & ghi nhận'}
+            </button>
+          )}
+          {r.status === 'acknowledged' && (
+            <div style={{ fontSize: 12, color: '#15803d' }}>✓ Đã xác nhận lúc {new Date(r.acknowledgedAt).toLocaleString('vi-VN')}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FatigueSummary() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    (async () => {
+      const end   = new Date().toISOString().slice(0, 10);
+      const start = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      try { const { data: arr } = await api.get(`/api/fatigue-reports/summary?start=${start}&end=${end}`); setData(arr); }
+      catch (e) { console.error(e); }
+    })();
+  }, []);
+  if (!data) return <Spinner size={32} color="#2563eb" />;
+  const dist = {};
+  for (let i = 1; i <= 9; i++) dist[i] = 0;
+  data.forEach(r => { dist[r.kssScore] = (dist[r.kssScore] || 0) + 1; });
+  const maxV = Math.max(1, ...Object.values(dist));
+  return (
+    <div>
+      <div style={{ padding: 12, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+        Tổng hợp ẩn danh — không hiển thị tên người báo cáo (QĐ 2289 Chương VI mục III).
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Tổng báo cáo (30 ngày)', value: data.length, color: '#2563eb', bg: '#eff6ff' },
+          { label: 'KSS ≥ 7', value: data.filter(r => r.kssScore >= 7).length, color: '#dc2626', bg: '#fef2f2' },
+          { label: 'Đã xử lý', value: data.filter(r => ['acknowledged','analyzed'].includes(r.status)).length, color: '#16a34a', bg: '#f0fdf4' },
+        ].map(c => (
+          <div key={c.label} style={{ padding: 16, borderRadius: 8, backgroundColor: c.bg, textAlign: 'center' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: c.color }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+      <h3 style={{ fontSize: 14, marginBottom: 12 }}>Phân bố điểm KSS</h3>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 180, padding: 12, backgroundColor: '#f8fafc', borderRadius: 8 }}>
+        {Object.entries(dist).map(([k, v]) => (
+          <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, marginBottom: 4 }}>{v}</div>
+            <div style={{ width: '100%', height: `${Math.max(2, (v / maxV) * 140)}px`,
+                          backgroundColor: parseInt(k) >= 7 ? '#dc2626' : parseInt(k) >= 5 ? '#f97316' : '#16a34a',
+                          borderRadius: '4px 4px 0 0' }} />
+            <div style={{ fontSize: 11, marginTop: 4 }}>{k}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function _fatStatusLabel(s) { return ({ submitted:'Đã gửi', acknowledged:'Đã xác nhận', analyzed:'Đã phân tích', closed:'Đã đóng' })[s] || s; }
+function _fatStatusBg(s)    { return ({ submitted:'#fef3c7', acknowledged:'#dcfce7', analyzed:'#dbeafe', closed:'#f1f5f9' })[s] || '#f1f5f9'; }
+function _fatStatusText(s)  { return ({ submitted:'#92400e', acknowledged:'#166534', analyzed:'#1e40af', closed:'#475569' })[s] || '#475569'; }
 
 // ─── ShiftExchangeTab (Phase E4) ──────────────────────────────────────────────
 
@@ -1232,6 +1402,9 @@ function ShiftExchangeTab({ currentUser }) {
   const [overrideReasons, setOverrideReasons] = useState({});
   const [approving, setApproving] = useState({});
   const [detailsOpen, setDetailsOpen] = useState({});
+  const [rejectModalId, setRejectModalId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [agreeing, setAgreeing] = useState({});
 
   // Xác định biểu mẫu dựa trên position/role của currentUser
   const pos = (currentUser?.position || '').toLowerCase();
@@ -1310,6 +1483,28 @@ function ShiftExchangeTab({ currentUser }) {
 
   const updateOverrideReason = (id, value) => {
     setOverrideReasons(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleAgree = async (id) => {
+    if (!window.confirm('Bạn xác nhận đồng ý nhận đổi ca này?')) return;
+    setAgreeing(prev => ({ ...prev, [id]: true }));
+    try {
+      await api.put(`/api/shift-exchanges/${id}/agree`);
+      loadMine();
+    } catch (e) {
+      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+    } finally { setAgreeing(prev => ({ ...prev, [id]: false })); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) { window.alert('Vui lòng ghi lý do từ chối.'); return; }
+    try {
+      await api.put(`/api/shift-exchanges/${rejectModalId}/reject`, { reason: rejectReason });
+      setRejectModalId(null); setRejectReason('');
+      loadMine();
+    } catch (e) {
+      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+    }
   };
 
   const submit = async () => {
@@ -1397,11 +1592,35 @@ function ShiftExchangeTab({ currentUser }) {
                       <PrecheckPanel result={ex.precheckResult} />
                     )}
                   </div>
+                  {/* M2: Agree (counterparty) / Reject / Approve (chief) */}
+                  {(() => {
+                    const isCounterparty = ex.counterpartyId === currentUser?.id;
+                    const isApplicant    = ex.applicantId    === currentUser?.id;
+                    return (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                        {ex.status === 'pending' && isCounterparty && (
+                          <button type="button" disabled={agreeing[ex.id]}
+                                  style={{ ...T.btn, backgroundColor: '#16a34a', opacity: agreeing[ex.id] ? 0.6 : 1 }}
+                                  onClick={() => handleAgree(ex.id)}>
+                            {agreeing[ex.id] ? 'Đang xử lý…' : '✓ Đồng ý nhận đổi ca'}
+                          </button>
+                        )}
+                        {['pending', 'counterparty_agreed', 'chief_1_approved'].includes(ex.status) &&
+                         (isCounterparty || isChief || isApplicant) && (
+                          <button type="button"
+                                  style={{ ...T.btn, backgroundColor: '#dc2626' }}
+                                  onClick={() => { setRejectModalId(ex.id); setRejectReason(''); }}>
+                            ✗ Từ chối / Hủy
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {(isChief && ['counterparty_agreed', 'chief_1_approved'].includes(ex.status)) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <button type="button" style={{ ...T.btn, backgroundColor: '#16a34a' }}
+                      <button type="button" style={{ ...T.btn, backgroundColor: '#2563eb' }}
                               onClick={() => toggleApproval(ex.id)}>
-                        {approvalOpen[ex.id] ? 'Đóng phê duyệt' : 'Phê duyệt'}
+                        {approvalOpen[ex.id] ? 'Đóng phê duyệt' : '✓ Phê duyệt'}
                       </button>
                       {(ex.precheckResult?.warnings?.length ?? 0) > 0 && (
                         <span style={{ fontSize: 12, color: '#92400e' }}>⚠️ Có cảnh báo precheck</span>
@@ -1496,6 +1715,48 @@ function ShiftExchangeTab({ currentUser }) {
             </button>
           </div>
           {precheckResult && <PrecheckPanel result={precheckResult} />}
+        </div>
+      )}
+
+      {/* M2: Reject modal overlay */}
+      {rejectModalId && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9000,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            backgroundColor: '#fff', borderRadius: 12, padding: 24,
+            width: 440, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            display: 'grid', gap: 14,
+          }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+              Từ chối / Hủy yêu cầu đổi ca
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+              Vui lòng ghi rõ lý do. Lý do này sẽ được lưu vào hồ sơ.
+            </p>
+            <textarea
+              rows={4}
+              style={{ ...T.inp, resize: 'vertical' }}
+              placeholder="Nhập lý do từ chối / hủy..."
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button"
+                      style={{ ...T.btn, backgroundColor: '#94a3b8' }}
+                      onClick={() => { setRejectModalId(null); setRejectReason(''); }}>
+                Huỷ bỏ
+              </button>
+              <button type="button"
+                      style={{ ...T.btn, backgroundColor: '#dc2626' }}
+                      onClick={handleReject}>
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
