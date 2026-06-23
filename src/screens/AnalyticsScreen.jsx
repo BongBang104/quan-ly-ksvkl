@@ -508,7 +508,7 @@ function QualificationsTab() {
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, padding: 16 }}>
-            {coverage.positions.map(pos => (
+            {(coverage.positions ?? []).map(pos => (
               <div key={pos.position} style={{
                 backgroundColor: pos.is_sufficient ? '#f0fdf4' : '#fef2f2',
                 border: `1px solid ${pos.is_sufficient ? '#bbf7d0' : '#fecaca'}`,
@@ -544,11 +544,11 @@ function QualificationsTab() {
             <span style={T.cardTitle}>CẢNH BÁO HẾT HẠN NĂNG ĐỊNH</span>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>{alerts.alert_count} cảnh báo</span>
           </div>
-          {alerts.alerts.length === 0
+          {!(alerts.alerts ?? []).length
             ? <div style={{ padding: '32px 20px', alignItems: 'center', fontSize: 14, color: '#94a3b8', fontStyle: 'italic' }}>
                 Không có cảnh báo hết hạn năng định.
               </div>
-            : alerts.alerts.map((a, i) => {
+            : (alerts.alerts ?? []).map((a, i) => {
               const s = SEV_STYLE[a.severity] || SEV_STYLE.INFO;
               return (
                 <div key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 14,
