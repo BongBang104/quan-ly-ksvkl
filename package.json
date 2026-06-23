@@ -2,10 +2,11 @@
   "license": "0BSD",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently --names \"FRONT,NEST,FAST\" --prefix-colors \"cyan,yellow,magenta\" --kill-others-on-fail \"npm run dev:front\" \"npm run dev:nest\" \"npm run dev:fast\"",
+    "dev": "concurrently --names \"FRONT,NEST,FAST\" --prefix-colors \"cyan,yellow,magenta\" \"npm run dev:front\" \"npm run dev:nest\" \"npm run dev:fast\"",
     "dev:front": "vite",
     "dev:nest":  "npm --prefix backend run start:dev",
     "dev:fast":  "cd analytics && dev.bat",
+    "dev:no-analytics": "concurrently --names \"FRONT,NEST\" --prefix-colors \"cyan,yellow\" \"npm run dev:front\" \"npm run dev:nest\"",
     "build":     "vite build",
     "preview":   "vite preview"
   },
