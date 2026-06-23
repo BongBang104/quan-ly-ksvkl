@@ -72,11 +72,15 @@ const POS_LABEL = {
 const pad = n => String(n).padStart(2, '0');
 
 const apiErr = e => {
+  if (e.code === 'ECONNABORTED' || e.message?.includes('timeout')) {
+    return 'Quá thời gian chờ. Thao tác tối ưu hóa có thể mất đến 30 giây — vui lòng thử lại.';
+  }
   if (e.response) {
-    const detail = e.response.data?.detail;
+    // FastAPI trả detail, NestJS trả message
+    const detail = e.response.data?.detail || e.response.data?.message;
     return detail || `Lỗi server: HTTP ${e.response.status} — ${e.response.statusText || 'Internal Server Error'}`;
   }
-  return 'Không thể kết nối Analytics Service (cổng 8001). Đảm bảo đã chạy: uvicorn app.main:app --port 8001';
+  return 'Không thể kết nối tới backend (cổng 3000). Kiểm tra NestJS đang chạy.';
 };
 
 const currentMonth = () => {

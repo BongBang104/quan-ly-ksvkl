@@ -20,7 +20,7 @@ export const getAuthToken   = ()      => localStorage.getItem(TOKEN_KEY);
 export const setAuthToken   = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearAuthToken = ()      => localStorage.removeItem(TOKEN_KEY);
 
-const api = axios.create({ timeout: 15000 });
+const api = axios.create({ timeout: 60000 });
 
 // Attach dynamic base URL + Bearer token on every request
 api.interceptors.request.use(config => {
