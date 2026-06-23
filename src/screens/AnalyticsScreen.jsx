@@ -2824,7 +2824,7 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
         backgroundColor: '#1e293b', height: 46, flexShrink: 0,
-        display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px',
+        display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, padding: '0 20px',
       }}>
         <Icon name="activity" size={16} color="#60a5fa" />
         <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', flex: 1 }}>
@@ -2835,8 +2835,8 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
         )}
       </div>
 
-      {/* Body: sidebar + content (alignItems: flex-start để sidebar không stretch theo content) */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
+      {/* Body: sidebar + content */}
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
 
         {/* Sidebar — sticky dưới header, cuộn độc lập nếu menu dài */}
         <nav style={{
@@ -2886,7 +2886,7 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
           <div style={{
             backgroundColor: '#fff', padding: '12px 24px',
             borderBottom: '1px solid #e2e8f0',
-            display: 'flex', alignItems: 'center', gap: 12,
+            display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12,
           }}>
             <div style={{ backgroundColor: '#0f172a', padding: 8, borderRadius: 8, flexShrink: 0 }}>
               <Icon name={activeTab?.icon || 'activity'} size={15} color="#fff" />
