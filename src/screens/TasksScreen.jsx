@@ -1,3 +1,4 @@
+// @deprecated — logic đã được chuyển vào AnalyticsScreen (TasksFeedTab). File này không còn được dùng trong routing.
 import Spinner from "../components/Spinner.jsx";
 import Modal from '../components/Modal.jsx';
 import Icon from '../components/Icon.jsx';

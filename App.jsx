@@ -10,7 +10,6 @@ import SchedulerScreen from './src/screens/SchedulerScreen.jsx';
 import TeamsScreen from './src/screens/TeamsScreen.jsx';
 import ManagerDataScreen from './src/screens/ManagerDataScreen.jsx';
 import StatsScreen from './src/screens/StatsScreen.jsx';
-import TasksScreen from './src/screens/TasksScreen.jsx';
 import AccountManagerScreen from './src/screens/AccountManagerScreen.jsx';
 import SettingsScreen from './src/screens/SettingsScreen.jsx';
 import SuperAdminScreen from './src/screens/SuperAdminScreen.jsx';
@@ -237,9 +236,8 @@ function MainApp() {
       { id: 'DASHBOARD',    icon: 'home',       label: 'Tổng quan',  section: 'MAIN' },
       { id: 'SCHEDULER',    icon: 'calendar',   label: 'Phân ca',    section: 'MAIN' },
       { id: 'TEAMS',        icon: 'users',      label: 'Quản lý',    section: 'MAIN' },
-      { id: 'TASKS',        icon: 'clipboard',  label: 'Nhiệm vụ',   section: 'MAIN' },
-      { id: 'STATS',        icon: 'bar-chart-2',label: 'Thống kê',   section: 'MANAGE' },
-      { id: 'ANALYTICS',    icon: 'activity',   label: 'Báo cáo',    section: 'MANAGE' },
+      { id: 'STATS',        icon: 'bar-chart-2',label: 'Thống kê',         section: 'MANAGE' },
+      { id: 'ANALYTICS',    icon: 'activity',   label: 'Báo cáo & Nhiệm vụ', section: 'MANAGE' },
       { id: 'MANAGER_DATA', icon: 'database',   label: 'Nhân sự',    section: 'MANAGE' },
       { id: 'ACCOUNTS',     icon: 'shield',     label: 'Tài khoản',  section: 'SYSTEM' },
       { id: 'SETTINGS',     icon: 'settings',   label: 'Cài đặt',    section: 'SYSTEM' },
@@ -252,7 +250,7 @@ function MainApp() {
       ];
     }
     if (role === 'ADMIN') return all;
-    return all.filter(m => ['DASHBOARD', 'SCHEDULER', 'TEAMS', 'TASKS'].includes(m.id));
+    return all.filter(m => ['DASHBOARD', 'SCHEDULER', 'TEAMS', 'ANALYTICS'].includes(m.id));
   };
 
   const renderScreen = () => {
@@ -267,8 +265,7 @@ function MainApp() {
       case 'TEAMS':        return <TeamsScreen        {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;
       case 'MANAGER_DATA': return <ManagerDataScreen  {...p} onUpdateEmployeeId={handleUpdateEmployeeId} />;
       case 'STATS':        return <StatsScreen        {...p} scheduleData={scheduleData} />;
-      case 'ANALYTICS':    return <AnalyticsScreen    employees={employees} currentUser={currentUser} />;
-      case 'TASKS':        return <TasksScreen        {...p} />;
+      case 'ANALYTICS':    return <AnalyticsScreen    {...p} />;
       case 'ACCOUNTS':     return <AccountManagerScreen employees={employees} setEmployees={setEmployees} settings={settings} />;
       case 'SETTINGS':     return <SettingsScreen settings={settings} setSettings={setSettings} currentUser={currentUser} />;
       case 'APPROVE':      return <SuperAdminScreen />;

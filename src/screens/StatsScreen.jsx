@@ -141,6 +141,21 @@ export default function StatsScreen({ employees = [], settings, activities = [] 
       else setEndDate(val);
   };
 
+  const handleExportCSV = () => {
+    const header = ['Họ và Tên', 'Đơn Vị', 'CA SÁNG', 'CA ĐÊM', 'TĂNG CƯỜNG', 'ON-CALL', 'PHÉP', 'ỐM', 'CÔNG TÁC', 'HỌC', 'TỔNG CA'];
+    const rows = statsData.list.map(emp =>
+      [emp.name, emp.team || '', emp.S, emp.D, emp.TC, emp.OC, emp.P, emp.O, emp.CT, emp.H, emp.totalShifts].join(',')
+    );
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `thong-ke-${startDate}_${endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={styles.container}>
 
@@ -154,9 +169,9 @@ export default function StatsScreen({ employees = [], settings, activities = [] 
               </div>
           </div>
           {/* Nút chuẩn bị cho Giai đoạn 5 */}
-          <button type="button" style={styles.btnExport}>
+          <button type="button" style={styles.btnExport} onClick={handleExportCSV}>
               <Icon name="download" size={16} color="#fff" />
-              <span style={styles.btnExportText}>Xuất Excel</span>
+              <span style={styles.btnExportText}>Xuất CSV</span>
           </button>
       </div>
 
@@ -245,7 +260,7 @@ export default function StatsScreen({ employees = [], settings, activities = [] 
                   <span style={styles.tableTitle}>BẢNG CHI TIẾT NHÂN SỰ</span>
                   <span style={styles.tableSubTitle}>Sắp xếp giảm dần theo Tổng ca</span>
               </div>
-              <div horizontal showsHorizontalScrollIndicator={true} style={styles.tableScroll}>
+              <div style={styles.tableScroll}>
                   <div style={{ minWidth: 900, paddingBottom: 10 }}>
 
                       {/* Tiêu đề cột */}
@@ -310,71 +325,71 @@ export default function StatsScreen({ employees = [], settings, activities = [] 
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  scrollArea: { flex: 1, paddingLeft: 16, paddingRight: 16, overflowY: 'auto', display: 'block' },
+  container: { display: 'flex', flexDirection: 'column', minHeight: '100%', backgroundColor: '#f1f5f9' },
+  scrollArea: { display: 'block', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 24 },
 
-  headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 20, borderBottomWidth: 1, borderColor: '#e2e8f0', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  headerTitleBox: { flexDirection: 'row', alignItems: 'center' },
+  headerArea: { position: 'sticky', top: 0, zIndex: 10, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 20, borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 12, flexShrink: 0 },
+  headerTitleBox: { display: 'flex', flexDirection: 'row', alignItems: 'center' },
   iconBox: { backgroundColor: '#8b5cf6', padding: 12, borderRadius: 12, marginRight: 16 },
-  headerTitle: { fontFamily: 'Times New Roman', fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
-  headerSub: { fontFamily: 'Times New Roman', fontSize: 13, color: '#64748b', marginTop: 4 },
-  btnExport: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#10b981', paddingLeft: 16, paddingRight: 16, paddingTop: 10, paddingBottom: 10, borderRadius: 8 },
+  headerTitle: { fontFamily: 'Times New Roman', fontSize: 20, fontWeight: 'bold', color: '#1e293b', display: 'block' },
+  headerSub: { fontFamily: 'Times New Roman', fontSize: 13, color: '#64748b', marginTop: 4, display: 'block' },
+  btnExport: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#10b981', paddingLeft: 16, paddingRight: 16, paddingTop: 10, paddingBottom: 10, borderRadius: 8, border: 'none', cursor: 'pointer' },
   btnExportText: { fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#fff' },
 
-  filterCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 20, marginBottom: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
+  filterCard: { backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20, marginBottom: 20, boxShadow: '0 4px 6px rgba(0,0,0,0.08)' },
   filterSection: { marginBottom: 4 },
-  filterLabel: { fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#94a3b8', marginBottom: 12, letterSpacing: 0.5 },
+  filterLabel: { fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#94a3b8', marginBottom: 12, letterSpacing: 0.5, display: 'block' },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginTop: 16, marginBottom: 16 },
 
-  quickDateBtn: { paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, borderRadius: 20, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', marginRight: 10 },
+  quickDateBtn: { paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, borderRadius: 20, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', marginRight: 10, marginBottom: 8, cursor: 'pointer' },
   quickDateBtnActive: { backgroundColor: '#e0e7ff', borderColor: '#818cf8' },
   quickDateText: { fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#64748b' },
   quickDateTextActive: { color: '#4f46e5' },
 
-  customDateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  customDateRow: { display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   dateInputBox: { flex: 1, minWidth: 120 },
-  dateInputLabel: { fontFamily: 'Times New Roman', fontSize: 12, color: '#64748b', marginBottom: 6 },
-  dateInput: { fontFamily: 'Courier New', fontSize: 14, fontWeight: 'bold', color: '#1e293b', backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8 },
+  dateInputLabel: { fontFamily: 'Times New Roman', fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block' },
+  dateInput: { fontFamily: 'Courier New', fontSize: 14, fontWeight: 'bold', color: '#1e293b', backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8 },
 
-  teamFilterBtn: { paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', marginRight: 10 },
+  teamFilterBtn: { paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, borderRadius: 8, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', marginRight: 10, marginBottom: 8, cursor: 'pointer' },
   teamFilterBtnActive: { backgroundColor: '#1e293b', borderColor: '#1e293b' },
   teamFilterText: { fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#64748b' },
   teamFilterTextActive: { color: '#fff' },
 
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 20 },
-  summaryCard: { flex: 1, minWidth: 150, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
-  summaryIconWrap: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  summaryRow: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 20 },
+  summaryCard: { flex: 1, minWidth: 150, backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 16, boxShadow: '0 4px 6px rgba(0,0,0,0.08)' },
+  summaryIconWrap: { width: 44, height: 44, borderRadius: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   summaryData: { flex: 1 },
-  summaryLabel: { fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: '#64748b', marginBottom: 4 },
-  summaryValue: { fontFamily: 'Times New Roman', fontSize: 24, fontWeight: 'bold' },
+  summaryLabel: { fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: '#64748b', marginBottom: 4, display: 'block' },
+  summaryValue: { fontFamily: 'Times New Roman', fontSize: 24, fontWeight: 'bold', display: 'block' },
 
-  tableCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
-  tableHeaderSection: { padding: 20, borderBottomWidth: 1, borderColor: '#f1f5f9', backgroundColor: '#fff' },
-  tableTitle: { fontFamily: 'Times New Roman', fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  tableSubTitle: { fontFamily: 'Times New Roman', fontSize: 12, color: '#94a3b8', marginTop: 4 },
+  tableCard: { backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.08)', marginBottom: 24 },
+  tableHeaderSection: { padding: 20, borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff' },
+  tableTitle: { fontFamily: 'Times New Roman', fontSize: 16, fontWeight: 'bold', color: '#1e293b', display: 'block' },
+  tableSubTitle: { fontFamily: 'Times New Roman', fontSize: 12, color: '#94a3b8', marginTop: 4, display: 'block' },
 
-  tableScroll: { backgroundColor: '#f8fafc' },
-  tableHead: { flexDirection: 'row', paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f1f5f9' },
+  tableScroll: { backgroundColor: '#f8fafc', overflowX: 'auto', display: 'block', WebkitOverflowScrolling: 'touch' },
+  tableHead: { display: 'flex', flexDirection: 'row', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #e2e8f0', backgroundColor: '#f1f5f9', minWidth: 900 },
   th: { fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: '#64748b', paddingLeft: 8, paddingRight: 8 },
 
-  tableRow: { flexDirection: 'row', paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
+  tableRow: { display: 'flex', flexDirection: 'row', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f1f5f9', alignItems: 'center', minWidth: 900 },
   rowEven: { backgroundColor: '#fff' },
   rowOdd: { backgroundColor: '#fdfdfd' },
-  td: { paddingLeft: 8, paddingRight: 8, justifyContent: 'center' },
+  td: { display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: 8, paddingRight: 8 },
 
   nameText: { fontFamily: 'Times New Roman', fontSize: 14, fontWeight: 'bold', color: '#1e293b' },
   idText: { fontFamily: 'Courier New', fontSize: 11, color: '#94a3b8', marginTop: 4 },
-  teamBadge: { backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0', paddingTop: 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 8, borderRadius: 6, alignSelf: 'flex-start' },
+  teamBadge: { backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', paddingTop: 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 8, borderRadius: 6, display: 'inline-block' },
   teamBadgeText: { fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: '#475569' },
 
-  statNum: { fontFamily: 'Courier New', fontSize: 15, fontWeight: 'bold', color: '#1e293b', textAlign: 'center' },
+  statNum: { fontFamily: 'Courier New', fontSize: 15, fontWeight: 'bold', color: '#1e293b', textAlign: 'center', display: 'block' },
   statZero: { color: '#cbd5e1', fontWeight: 'normal' },
 
-  totalBadge: { backgroundColor: '#ecfccb', paddingTop: 6, paddingBottom: 6, borderRadius: 8, borderWidth: 1, borderColor: '#bef264', alignItems: 'center' },
+  totalBadge: { backgroundColor: '#ecfccb', paddingTop: 6, paddingBottom: 6, paddingLeft: 8, paddingRight: 8, borderRadius: 8, border: '1px solid #bef264', display: 'flex', justifyContent: 'center', alignItems: 'center' },
   totalBadgeText: { fontFamily: 'Courier New', fontSize: 16, fontWeight: 'bold', color: '#4d7c0f' },
   totalBadgeZero: { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' },
   totalTextZero: { color: '#94a3b8', fontWeight: 'normal' },
 
-  emptyWrap: { padding: 60, alignItems: 'center', justifyContent: 'center' },
+  emptyWrap: { padding: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontFamily: 'Times New Roman', fontSize: 14, color: '#94a3b8', fontStyle: 'italic', marginTop: 16 },
 };
