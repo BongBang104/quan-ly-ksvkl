@@ -1,12 +1,12 @@
 @echo off
 if exist ".venv\Scripts\uvicorn.exe" (
-    echo [FAST] Starting FastAPI with virtualenv...
-    .venv\Scripts\uvicorn app.main:app --reload --port 8000
+    echo [FAST] Starting FastAPI Analytics on port 8001...
+    .venv\Scripts\uvicorn app.main:app --reload --port 8001 --host 127.0.0.1
 ) else (
-    echo [FAST] .venv not found. Set up once with:
+    echo [FAST] ERROR: .venv not found in analytics/
+    echo [FAST] Setup once with:
     echo [FAST]   cd analytics
     echo [FAST]   python -m venv .venv
     echo [FAST]   .venv\Scripts\pip install -r requirements.txt
-    echo [FAST] Trying global uvicorn...
-    uvicorn app.main:app --reload --port 8000
+    exit /b 1
 )

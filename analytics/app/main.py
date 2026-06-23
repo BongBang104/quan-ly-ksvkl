@@ -13,21 +13,55 @@ LƯU Ý AN TOÀN:
 - Tinh thần Just Culture theo QĐ 2288 Điều 8 và QĐ 2289 Chương I.V.5.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text as sql_text
 
 from app.routers import compliance, exchange, fairness, optimize, ratings, roster, spi
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Chạy khi startup — kiểm tra kết nối DB và log rõ ràng."""
+    from app.data.database import get_engine
+    print("\n" + "═" * 60)
+    print("  KSVKL Analytics Service đang khởi động...")
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            result = conn.execute(sql_text("SELECT current_database(), current_user"))
+            db_name, db_user = result.fetchone()
+        print(f"  ✓ Kết nối DB thành công: database={db_name}, user={db_user}")
+        print(f"  ✓ Server sẵn sàng tại: http://127.0.0.1:8001")
+        print(f"  ✓ Docs: http://127.0.0.1:8001/docs")
+    except Exception as e:
+        print(f"  ✗ KHÔNG kết nối được DB: {e}")
+        print(f"  → Kiểm tra DATABASE_URL trong analytics/.env")
+        print(f"  → Server vẫn khởi động nhưng mọi API call sẽ lỗi 500")
+    print("═" * 60 + "\n")
+    yield
+    print("\n[Analytics] Server đã dừng.")
+
 
 app = FastAPI(
     title="KSVKL Analytics",
     version="1.0.0",
     description="Analytics read-only service cho hệ thống quản lý KSVKL.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173",
-                   "http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

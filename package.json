@@ -5,7 +5,7 @@
     "dev": "concurrently --names \"FRONT,NEST,FAST\" --prefix-colors \"cyan,yellow,magenta\" \"npm run dev:front\" \"npm run dev:nest\" \"npm run dev:fast\"",
     "dev:front": "vite",
     "dev:nest":  "npm --prefix backend run start:dev",
-    "dev:fast":  "cd analytics && dev.bat",
+    "dev:fast":  "npm --prefix analytics run start",
     "dev:no-analytics": "concurrently --names \"FRONT,NEST\" --prefix-colors \"cyan,yellow\" \"npm run dev:front\" \"npm run dev:nest\"",
     "reset-superadmin": "npm --prefix backend run reset-superadmin",
     "build":     "vite build",

@@ -2116,14 +2116,14 @@ const taskFmtDate = (dateStr) => {
 };
 
 const taskStyles = {
-  container: { flex: 1, backgroundColor: '#f1f5f9', padding: 16 },
+  container: { backgroundColor: '#f1f5f9', padding: 16, width: '100%', boxSizing: 'border-box', minHeight: 'calc(100vh - 120px)' },
   confirmBox: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, boxShadow: '0 4px 6px rgba(0,0,0,0.08)' },
   confirmTitle: { fontFamily: 'Times New Roman', fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 12, display: 'block' },
   confirmMsg: { fontFamily: 'Times New Roman', fontSize: 14, color: '#475569', marginBottom: 24, lineHeight: '22px', display: 'block' },
   confirmActions: { display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   modalBtn: { paddingTop: 10, paddingBottom: 10, paddingLeft: 20, paddingRight: 20, borderRadius: 8, border: 'none', cursor: 'pointer' },
   modalBtnText: { fontFamily: 'Times New Roman', fontSize: 14, fontWeight: 'bold' },
-  toastContainer: { position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', paddingTop: 12, paddingBottom: 12, paddingLeft: 20, paddingRight: 20, borderRadius: 8, boxShadow: '0 4px 6px rgba(0,0,0,0.08)', borderLeft: '4px solid #10b981', zIndex: 1000 },
+  toastContainer: { position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', paddingTop: 12, paddingBottom: 12, paddingLeft: 20, paddingRight: 20, borderRadius: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.15)', borderLeft: '4px solid #10b981', zIndex: 9999 },
   toastTitle: { fontFamily: 'Times New Roman', fontSize: 14, fontWeight: 'bold', color: '#1e293b', display: 'block' },
   toastMsg: { fontFamily: 'Times New Roman', fontSize: 12, color: '#475569', marginTop: 2, display: 'block' },
   headerCard: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 20, borderRadius: 16, border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 4px 6px rgba(0,0,0,0.08)', gap: 16 },
@@ -2541,7 +2541,7 @@ function TasksFeedTab() {
   );
 
   return (
-    <div style={{ position: 'relative', backgroundColor: '#f1f5f9', padding: 16 }}>
+    <div style={{ position: 'relative', backgroundColor: '#f1f5f9', padding: 16, minHeight: 'calc(100vh - 120px)', width: '100%', boxSizing: 'border-box' }}>
       <FloatingToast toast={toast} />
 
       <Modal visible={confirmDialog.visible} maxWidth="400px" zIndex={10001}>
@@ -2794,10 +2794,14 @@ function TasksFeedTab() {
           );
         })}
         {filteredTasks.length === 0 && (
-          <div style={taskStyles.emptyState}>
+          <div style={{ ...taskStyles.emptyState, minHeight: 400, justifyContent: 'center' }}>
             <div style={taskStyles.emptyIconWrap}><Icon name="inbox" size={40} color="#94a3b8" /></div>
             <span style={taskStyles.emptyTitle}>Chưa có Dữ Liệu</span>
-            <span style={taskStyles.emptyText}>Không tìm thấy bài đăng nào phù hợp với bộ lọc hoặc quyền hạn của bạn.</span>
+            <span style={taskStyles.emptyText}>
+              {filter === 'ALL'
+                ? 'Chưa có nhiệm vụ hoặc thông báo nào được tạo.'
+                : 'Không có bài đăng nào thuộc loại này.'}
+            </span>
           </div>
         )}
       </div>
@@ -2898,7 +2902,7 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
           </div>
 
           {/* Tab content */}
-          <div style={{ backgroundColor: '#f8fafc' }}>
+          <div style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 120px)', width: '100%' }}>
             {tab === 'compliance'     && <ComplianceTab />}
             {tab === 'fairness'       && <FairnessTab />}
             {tab === 'qualifications' && <QualificationsTab />}

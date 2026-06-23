@@ -1,0 +1,8 @@
+{
+  "name": "ksvkl-analytics",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node -e \"require('child_process').execSync(process.platform==='win32'?'dev.bat':'bash dev.sh',{stdio:'inherit',shell:true})\""
+  }
+}
