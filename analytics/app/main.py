@@ -26,23 +26,24 @@ from app.routers import compliance, exchange, fairness, optimize, ratings, roste
 async def lifespan(application: FastAPI):
     """Chạy khi startup — kiểm tra kết nối DB và log rõ ràng."""
     from app.data.database import get_engine
-    print("\n" + "═" * 60)
-    print("  KSVKL Analytics Service đang khởi động...")
+    sep = "=" * 60
+    print(f"\n{sep}")
+    print("  KSVKL Analytics Service dang khoi dong...")
     try:
         engine = get_engine()
         with engine.connect() as conn:
             result = conn.execute(sql_text("SELECT current_database(), current_user"))
             db_name, db_user = result.fetchone()
-        print(f"  ✓ Kết nối DB thành công: database={db_name}, user={db_user}")
-        print(f"  ✓ Server sẵn sàng tại: http://127.0.0.1:8001")
-        print(f"  ✓ Docs: http://127.0.0.1:8001/docs")
+        print(f"  [OK] Ket noi DB thanh cong: database={db_name}, user={db_user}")
+        print(f"  [OK] Server san sang tai: http://127.0.0.1:8001")
+        print(f"  [OK] Docs: http://127.0.0.1:8001/docs")
     except Exception as e:
-        print(f"  ✗ KHÔNG kết nối được DB: {e}")
-        print(f"  → Kiểm tra DATABASE_URL trong analytics/.env")
-        print(f"  → Server vẫn khởi động nhưng mọi API call sẽ lỗi 500")
-    print("═" * 60 + "\n")
+        print(f"  [ERR] KHONG ket noi duoc DB: {e}")
+        print(f"  --> Kiem tra DATABASE_URL trong analytics/.env")
+        print(f"  --> Server van khoi dong nhung moi API call se loi 500")
+    print(f"{sep}\n")
     yield
-    print("\n[Analytics] Server đã dừng.")
+    print("\n[Analytics] Server da dung.")
 
 
 app = FastAPI(
