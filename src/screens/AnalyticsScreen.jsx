@@ -2098,87 +2098,103 @@ const T = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsScreen({ employees = [], currentUser }) {
-  const [groupId, setGroupId] = useState('analysis');
   const [tab, setTab] = useState('compliance');
-
-  const currentGroup = TAB_GROUPS.find(g => g.id === groupId) ?? TAB_GROUPS[0];
-  const activeTab    = TABS.find(t => t.id === tab);
-
-  const switchGroup = (gid) => {
-    const g = TAB_GROUPS.find(x => x.id === gid);
-    if (!g) return;
-    setGroupId(gid);
-    setTab(g.tabs[0].id);
-  };
+  const activeTab = TABS.find(t => t.id === tab);
 
   return (
-    <div style={{ flex: 1, backgroundColor: '#f1f5f9', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header */}
-      <div style={{ backgroundColor: '#fff', padding: '14px 24px',
-                    borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <div style={{ backgroundColor: '#0f172a', padding: 10, borderRadius: 10 }}>
-            <Icon name="activity" size={20} color="#fff" />
+      {/* Top header */}
+      <div style={{
+        backgroundColor: '#1e293b', height: 46, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px',
+      }}>
+        <Icon name="activity" size={16} color="#60a5fa" />
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', flex: 1 }}>
+          Báo cáo &amp; Phân tích ATQK
+        </span>
+        {activeTab && (
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>{activeTab.label}</span>
+        )}
+      </div>
+
+      {/* Body: sidebar + content */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Sidebar */}
+        <nav style={{
+          width: 216, backgroundColor: '#fff', borderRight: '1px solid #e2e8f0',
+          flexShrink: 0, overflowY: 'auto', padding: '12px 0',
+        }}>
+          {TAB_GROUPS.map((g, gi) => (
+            <div key={g.id} style={{ marginBottom: gi < TAB_GROUPS.length - 1 ? 4 : 0 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: '#94a3b8',
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                padding: '8px 16px 4px',
+              }}>
+                {g.label}
+              </div>
+              {g.tabs.map(t => {
+                const on = tab === t.id;
+                return (
+                  <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    width: '100%', padding: '9px 16px',
+                    border: 'none', borderLeft: `3px solid ${on ? '#2563eb' : 'transparent'}`,
+                    cursor: 'pointer', textAlign: 'left',
+                    backgroundColor: on ? '#eff6ff' : 'transparent',
+                    color: on ? '#1d4ed8' : '#475569',
+                    fontSize: 13, fontWeight: on ? 700 : 400,
+                  }}>
+                    <Icon name={t.icon} size={14} color={on ? '#2563eb' : '#94a3b8'} />
+                    <span style={{ flex: 1, lineHeight: 1.3 }}>{t.label}</span>
+                  </button>
+                );
+              })}
+              {gi < TAB_GROUPS.length - 1 && (
+                <div style={{ margin: '8px 16px 0', borderBottom: '1px solid #f1f5f9' }} />
+              )}
+            </div>
+          ))}
+        </nav>
+
+        {/* Content area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* Content header */}
+          <div style={{
+            backgroundColor: '#fff', padding: '12px 24px',
+            borderBottom: '1px solid #e2e8f0', flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{ backgroundColor: '#0f172a', padding: 8, borderRadius: 8, flexShrink: 0 }}>
+              <Icon name={activeTab?.icon || 'activity'} size={15} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>
+                {activeTab?.label}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
+                {activeTab?.desc}
+              </div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#1e293b' }}>Báo cáo & Phân tích ATQK</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{activeTab?.desc}</div>
+
+          {/* Scrollable tab content */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {tab === 'compliance'     && <ComplianceTab />}
+            {tab === 'fairness'       && <FairnessTab />}
+            {tab === 'qualifications' && <QualificationsTab />}
+            {tab === 'optimizer'      && <OptimizerTab employees={employees} />}
+            {tab === 'spi'            && <SpiDashboardTab />}
+            {tab === 'checklist'      && <ChecklistTab />}
+            {tab === 'fatigue'        && <FatigueReportTab currentUser={currentUser} />}
+            {tab === 'exchange'       && <ShiftExchangeTab currentUser={currentUser} />}
+            {tab === 'briefing'       && <ShiftBriefingTab currentUser={currentUser} />}
+            {tab === 'handover'       && <WestHandoverTab currentUser={currentUser} />}
           </div>
         </div>
-      </div>
-
-      {/* Group tab bar */}
-      <div style={{ backgroundColor: '#fff', display: 'flex', flexWrap: 'wrap', borderBottom: '2px solid #e2e8f0', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        {TAB_GROUPS.map(g => {
-          const active = groupId === g.id;
-          return (
-            <button key={g.id} type="button" onClick={() => switchGroup(g.id)} style={{
-              padding: '12px 24px', fontSize: 14, fontWeight: 700, border: 'none',
-              color: active ? '#1e293b' : '#64748b',
-              backgroundColor: active ? '#fff' : 'transparent',
-              borderBottom: active ? '3px solid #2563eb' : '3px solid transparent',
-              marginBottom: -2, cursor: 'pointer',
-            }}>
-              {g.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Sub-tab bar */}
-      <div style={{ backgroundColor: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: 6,
-                    padding: '8px 12px', borderBottom: '1px solid #e2e8f0', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        {currentGroup.tabs.map(t => {
-          const on = tab === t.id;
-          return (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-              display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6,
-              padding: '7px 14px', fontSize: 13, fontWeight: 600,
-              color: on ? '#fff' : '#475569',
-              backgroundColor: on ? '#2563eb' : '#fff',
-              border: `1px solid ${on ? '#2563eb' : '#e2e8f0'}`,
-              borderRadius: 8, cursor: 'pointer',
-            }}>
-              <Icon name={t.icon} size={13} color={on ? '#fff' : '#475569'} />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {tab === 'compliance'     && <ComplianceTab />}
-        {tab === 'fairness'       && <FairnessTab />}
-        {tab === 'qualifications' && <QualificationsTab />}
-        {tab === 'optimizer'      && <OptimizerTab employees={employees} />}
-        {tab === 'spi'            && <SpiDashboardTab />}
-        {tab === 'checklist'      && <ChecklistTab />}
-        {tab === 'fatigue'        && <FatigueReportTab currentUser={currentUser} />}
-        {tab === 'exchange'       && <ShiftExchangeTab currentUser={currentUser} />}
-        {tab === 'briefing'       && <ShiftBriefingTab currentUser={currentUser} />}
-        {tab === 'handover'       && <WestHandoverTab currentUser={currentUser} />}
       </div>
     </div>
   );
