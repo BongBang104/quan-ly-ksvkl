@@ -1,9 +1,7 @@
 import Modal from '../components/Modal.jsx';
 import Icon from '../components/Icon.jsx';
 import React, { useState, useEffect } from 'react';
-
-
-import { DataService } from '../services/DataService';
+import api from '../services/ApiService';
 
 const generateDefaultId = (name) => {
     if (!name) return '';
@@ -23,10 +21,16 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
     // Hộp thoại Confirm Custom thay cho Alert mặc định
     const [confirmDialog, setConfirmDialog] = useState({ visible: false, title: '', msg: '', onConfirm: null, type: 'info' });
 
+    // Modal hiện password vừa được sinh (tạo mới + reset)
+    const [createdPassword, setCreatedPassword] = useState(null); // { id, password }
+
+    // Modal hiện bảng password sau bulk create
+    const [bulkPasswords, setBulkPasswords] = useState(null); // [{ id, name, password }]
+
     const roles = [
         { id: 'ADMIN', label: 'Quản trị viên (Admin)', color: '#ef4444', bg: '#fef2f2' },
-        { id: 'LEADER', label: 'Kíp trưởng (Leader)', color: '#2563eb', bg: '#eff6ff' },
-        { id: 'STAFF', label: 'Nhân viên (Staff)', color: '#10b981', bg: '#f0fdf4' }
+        { id: 'CHIEF', label: 'Kíp trưởng (Chief)',    color: '#2563eb', bg: '#eff6ff' },
+        { id: 'STAFF', label: 'Nhân viên (Staff)',      color: '#10b981', bg: '#f0fdf4' }
     ];
 
     useEffect(() => {
@@ -54,26 +58,35 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             return;
         }
 
-        let newEmps = [...employees];
-        if (editingEmp) {
-            newEmps = newEmps.map(e => e.id === editingEmp.id ? { ...e, ...formData, icaoCode: formData.icaoCode.toUpperCase() } : e);
-        } else {
-            if (employees.some(e => e.id === formData.id)) {
-                window.alert('Lỗi\nID Đăng nhập này đã tồn tại!');
-                return;
+        try {
+            if (editingEmp) {
+                // Cập nhật — KHÔNG gửi password
+                const { id, ...updateData } = formData;
+                await api.put(`/api/employees/${editingEmp.id}`, {
+                    ...updateData,
+                    icaoCode: formData.icaoCode.toUpperCase(),
+                });
+                const res = await api.get('/api/employees');
+                setEmployees(res.data.list);
+            } else {
+                // Tạo mới — backend sinh password
+                if (employees.some(e => e.id === formData.id)) {
+                    window.alert('Lỗi\nID Đăng nhập này đã tồn tại!');
+                    return;
+                }
+                const res = await api.post('/api/employees', {
+                    ...formData,
+                    icaoCode: formData.icaoCode.toUpperCase(),
+                    position: formData.role === 'CHIEF' ? 'Kíp trưởng' : (formData.role === 'ADMIN' ? 'Lãnh đạo' : 'Kiểm soát viên'),
+                });
+                const { employee, generatedPassword } = res.data;
+                setEmployees(prev => [...prev, employee]);
+                setCreatedPassword({ id: employee.id, password: generatedPassword });
             }
-            newEmps.push({
-                ...formData,
-                icaoCode: formData.icaoCode.toUpperCase(),
-                position: formData.role === 'LEADER' ? 'Kíp trưởng' : (formData.role === 'ADMIN' ? 'Lãnh đạo' : 'Kiểm soát viên'),
-                password: 'tctsdn123',
-                isFirstLogin: true
-            });
+        } catch (err) {
+            window.alert('Lỗi\nKhông thể lưu tài khoản. Vui lòng thử lại.');
+            return;
         }
-
-        setEmployees(newEmps);
-        await DataService.saveData(settings, "atc_system", "employees", { list: newEmps });
-        window.alert('Thành công\n' + (editingEmp ? 'Đã lưu thông tin tài khoản.' : 'Đã tạo tài khoản với Mật khẩu mặc định: tctsdn123'));
         setIsModalOpen(false);
     };
 
@@ -83,54 +96,56 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             return;
         }
 
-        // Normalize \r\n and \r to \n, then split lines
         const lines = bulkData
-            .replace(/\r\n/g, '\n')
-            .replace(/\r/g, '\n')
-            .split('\n')
-            .filter(line => line.trim() !== '');
-        let newEmps = [...employees];
-        let addedCount = 0;
-        let errorLines = [];
+            .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+            .split('\n').filter(line => line.trim() !== '');
+
+        const newList = [];
+        const errorLines = [];
 
         lines.forEach((line, index) => {
-            // Auto-detect separator: tab (from Excel/table paste) or comma
             const sep = line.includes('\t') ? '\t' : ',';
             const parts = line.split(sep).map(p => p.trim()).filter((_, i) => i < 4);
-            if (parts.length >= 1 && parts[0]) {
-                const name = parts[0];
-                const team = parts[1] || (settings?.teams?.[0] || 'Kíp A');
-                const roleInput = (parts[2] || 'STAFF').toUpperCase();
-                const role = ['ADMIN', 'LEADER', 'STAFF'].includes(roleInput) ? roleInput : 'STAFF';
-                const icaoCode = (parts[3] || '').toUpperCase();
+            if (!parts[0]) { errorLines.push(index + 1); return; }
 
-                let id = generateDefaultId(name);
-                let counter = 1;
-                while (newEmps.some(e => e.id === id)) {
-                    id = `${generateDefaultId(name)}${counter}`;
-                    counter++;
-                }
+            const name = parts[0];
+            const team = parts[1] || (settings?.teams?.[0] || 'Kíp A');
+            const roleInput = (parts[2] || 'STAFF').toUpperCase();
+            const role = ['ADMIN', 'CHIEF', 'STAFF'].includes(roleInput) ? roleInput : 'STAFF';
+            const icaoCode = (parts[3] || '').toUpperCase();
 
-                newEmps.push({
-                    id, name, team, role, icaoCode,
-                    position: role === 'LEADER' ? 'Kíp trưởng' : (role === 'ADMIN' ? 'Lãnh đạo' : 'Kiểm soát viên'),
-                    password: 'tctsdn123',
-                    isFirstLogin: true
-                });
-                addedCount++;
-            } else {
-                errorLines.push(index + 1);
+            let id = generateDefaultId(name);
+            let counter = 1;
+            while ([...employees, ...newList].some(e => e.id === id)) {
+                id = `${generateDefaultId(name)}${counter}`;
+                counter++;
             }
+
+            newList.push({
+                id, name, team, role, icaoCode,
+                position: role === 'CHIEF' ? 'Kíp trưởng' : (role === 'ADMIN' ? 'Lãnh đạo' : 'Kiểm soát viên'),
+            });
         });
 
-        if (addedCount > 0) {
-            setEmployees(newEmps);
-            await DataService.saveData(settings, "atc_system", "employees", { list: newEmps });
-            window.alert('Thành công\n' + `Đã tạo thành công ${addedCount} tài khoản.\nMật khẩu mặc định: tctsdn123\n${errorLines.length > 0 ? `Lỗi định dạng ở dòng: ${errorLines.join(', ')}` : ''}`);
-            setIsModalOpen(false);
-        } else {
-            window.alert('Lỗi\nKhông có tài khoản nào được tạo do sai định dạng.');
+        if (newList.length === 0) {
+            window.alert('Lỗi\nKhông có dòng hợp lệ nào.');
+            return;
         }
+
+        try {
+            const mergedList = [...employees, ...newList];
+            const res = await api.put('/api/employees', { list: mergedList });
+            const { list, passwords } = res.data;
+            setEmployees(list);
+
+            const pwTable = newList.map(e => ({
+                id: e.id, name: e.name, password: passwords[e.id] || '—'
+            }));
+            setBulkPasswords(pwTable);
+        } catch (err) {
+            window.alert('Lỗi\nKhông thể lưu danh sách. Vui lòng thử lại.');
+        }
+        setIsModalOpen(false);
     };
 
     const handleResetPassword = (empId) => {
@@ -138,13 +153,16 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             visible: true,
             type: 'warning',
             title: 'Khôi phục Mật khẩu',
-            msg: `Bạn có chắc chắn muốn đưa mật khẩu của tài khoản [${empId}] về mặc định là "tctsdn123"?\n\nNgười dùng sẽ bị bắt buộc đổi lại mật khẩu ở lần đăng nhập tiếp theo.`,
+            msg: `Bạn có chắc chắn muốn tạo mật khẩu mới ngẫu nhiên cho tài khoản [${empId}]?\n\nNgười dùng sẽ bị bắt buộc đổi lại mật khẩu ở lần đăng nhập tiếp theo.`,
             onConfirm: async () => {
-                const newEmps = employees.map(e => e.id === empId ? { ...e, password: 'tctsdn123', isFirstLogin: true } : e);
-                setEmployees(newEmps);
-                await DataService.saveData(settings, "atc_system", "employees", { list: newEmps });
                 setConfirmDialog({ visible: false, title: '', msg: '', onConfirm: null });
-                window.alert('Thành công\nĐã reset mật khẩu về tctsdn123.');
+                try {
+                    const res = await api.patch(`/api/employees/${empId}/reset-password`);
+                    const { generatedPassword } = res.data;
+                    setCreatedPassword({ id: empId, password: generatedPassword });
+                } catch (err) {
+                    window.alert('Lỗi\nKhông thể reset mật khẩu. Vui lòng thử lại.');
+                }
             }
         });
     };
@@ -156,10 +174,13 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             title: 'Xóa tài khoản',
             msg: `Hành động này sẽ xóa hoàn toàn tài khoản [${id}] khỏi hệ thống.\n\nBạn có chắc chắn muốn tiếp tục?`,
             onConfirm: async () => {
-                const newEmps = employees.filter(e => e.id !== id);
-                setEmployees(newEmps);
-                await DataService.saveData(settings, "atc_system", "employees", { list: newEmps });
                 setConfirmDialog({ visible: false, title: '', msg: '', onConfirm: null });
+                try {
+                    await api.delete(`/api/employees/${id}`);
+                    setEmployees(prev => prev.filter(e => e.id !== id));
+                } catch (err) {
+                    window.alert('Lỗi\nKhông thể xóa tài khoản. Vui lòng thử lại.');
+                }
             }
         });
     };
@@ -189,6 +210,133 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                         </div>
                     </div>
             </Modal>
+
+            {/* MODAL MẬT KHẨU VỪA SINH (tạo mới + reset) */}
+            {createdPassword && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                }}>
+                    <div style={{ background: '#fff', borderRadius: 12, padding: 28, maxWidth: 400, width: '90%' }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+                            Mật khẩu tài khoản mới
+                        </h3>
+                        <p style={{ fontSize: 14, color: '#374151', marginBottom: 16 }}>
+                            Tài khoản <strong>{createdPassword.id}</strong> đã được xử lý.<br />
+                            Mật khẩu dưới đây chỉ hiển thị <strong>một lần duy nhất</strong>.
+                            Vui lòng copy và gửi cho nhân sự ngay.
+                        </p>
+                        <div style={{
+                            background: '#f0fdf4', border: '1px solid #86efac',
+                            borderRadius: 8, padding: '12px 16px',
+                            fontFamily: 'monospace', fontSize: 22, fontWeight: 700,
+                            textAlign: 'center', letterSpacing: 4, color: '#15803d',
+                            marginBottom: 16
+                        }}>
+                            {createdPassword.password}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(createdPassword.password)
+                                        .then(() => window.alert('Đã copy mật khẩu vào clipboard.'))
+                                        .catch(() => window.alert(`Mật khẩu: ${createdPassword.password}`));
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 8,
+                                    background: '#2563eb', color: '#fff', border: 'none',
+                                    fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}
+                            >
+                                Copy mật khẩu
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCreatedPassword(null)}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 8,
+                                    background: '#f3f4f6', color: '#374151', border: 'none',
+                                    fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}
+                            >
+                                Đã lưu, đóng lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL BẢNG MẬT KHẨU BULK */}
+            {bulkPasswords && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                }}>
+                    <div style={{
+                        background: '#fff', borderRadius: 12, padding: 28,
+                        maxWidth: 560, width: '95%', maxHeight: '80vh', overflowY: 'auto'
+                    }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+                            Mật khẩu {bulkPasswords.length} tài khoản vừa tạo
+                        </h3>
+                        <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                            Danh sách dưới đây chỉ hiển thị <strong>một lần</strong>.
+                            Nhấn "Export CSV" để lưu và phân phát cho nhân sự.
+                        </p>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ background: '#f9fafb' }}>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>ID</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Họ tên</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontFamily: 'monospace' }}>Mật khẩu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {bulkPasswords.map(row => (
+                                    <tr key={row.id}>
+                                        <td style={{ padding: '5px 10px', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{row.id}</td>
+                                        <td style={{ padding: '5px 10px', borderBottom: '1px solid #f3f4f6' }}>{row.name}</td>
+                                        <td style={{ padding: '5px 10px', borderBottom: '1px solid #f3f4f6', fontFamily: 'monospace', fontWeight: 600, color: '#15803d' }}>{row.password}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const csv = 'ID,Họ tên,Mật khẩu\n' +
+                                        bulkPasswords.map(r => `${r.id},${r.name},${r.password}`).join('\n');
+                                    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url; a.download = 'matkhau_taikhoan.csv'; a.click();
+                                    URL.revokeObjectURL(url);
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 8,
+                                    background: '#2563eb', color: '#fff', border: 'none',
+                                    fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}
+                            >
+                                Export CSV
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBulkPasswords(null)}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 8,
+                                    background: '#f3f4f6', color: '#374151', border: 'none',
+                                    fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div style={styles.headerCard}>
                 <div style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
@@ -302,11 +450,11 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                             <>
                                 <div style={styles.infoBox}>
                                     <Icon name="info" size={14} color="#0369a1" />
-                                    <span style={styles.infoBoxText}>Hỗ trợ paste từ Excel/bảng hoặc nhập tay.{'\n'}Định dạng mỗi dòng (tab hoặc dấu phẩy):{'\n'}<span style={{fontWeight:'bold'}}>Họ Tên, Tên Kíp, Phân quyền, Mã ICAO</span>{'\n'}VD: Nguyễn Văn A, Kíp A, STAFF, P01</span>
+                                    <span style={styles.infoBoxText}>Hỗ trợ paste từ Excel/bảng hoặc nhập tay.{'\n'}Định dạng mỗi dòng (tab hoặc dấu phẩy):{'\n'}<span style={{fontWeight:'bold'}}>Họ Tên, Tên Kíp, Phân quyền, Mã ICAO</span>{'\n'}VD: Nguyễn Văn A, Kíp A, STAFF, P01{'\n'}Phân quyền: ADMIN, CHIEF, STAFF</span>
                                 </div>
                                 <textarea
                                     style={{...styles.input, height: 150, fontFamily: 'Courier New', resize: 'vertical', verticalAlign: 'top'}}
-                                    placeholder={`Nguyễn Văn A, Kíp A, STAFF, P01\nTrần Văn B, Kíp B, LEADER, NA`}
+                                    placeholder={`Nguyễn Văn A, Kíp A, STAFF, P01\nTrần Văn B, Kíp B, CHIEF, NA`}
                                     value={bulkData}
                                     onChange={(e) => setBulkData(e.target.value)}
                                 />
@@ -330,8 +478,6 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
 const styles = {
     container: { flex: 1, backgroundColor: '#f1f5f9', padding: 16 },
 
-    // Custom Confirm Modal Styles
-    confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
     confirmBox: { backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '100%', maxWidth: 360, boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
     confirmTitle: { fontFamily: 'Times New Roman', fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
     confirmMsg: { fontFamily: 'Times New Roman', fontSize: 14, color: '#475569', marginBottom: 20, lineHeight: '22px' },
@@ -354,7 +500,6 @@ const styles = {
     td: { fontFamily: 'Times New Roman', fontSize: 13, color: '#1e293b' },
     roleBadge: { paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, borderRadius: 20, borderWidth: 1 },
     roleText: { fontFamily: 'Times New Roman', fontSize: 10, fontWeight: 'bold' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
     modalContent: { backgroundColor: '#fff', width: '100%', maxWidth: 480, padding: 20, borderRadius: 12 },
     modalTitle: { fontFamily: 'Times New Roman', fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
     modeTabs: { flexDirection: 'row', marginBottom: 15, backgroundColor: '#f1f5f9', borderRadius: 8, padding: 4 },

@@ -15,6 +15,7 @@ import AccountManagerScreen from './src/screens/AccountManagerScreen.jsx';
 import SettingsScreen from './src/screens/SettingsScreen.jsx';
 import SuperAdminScreen from './src/screens/SuperAdminScreen.jsx';
 import AnalyticsScreen from './src/screens/AnalyticsScreen.jsx';
+import AuditLogScreen from './src/screens/AuditLogScreen.jsx';
 import NotificationLogModal from './src/components/NotificationLogModal.jsx';
 import NotificationPermissionBanner from './src/components/NotificationPermissionBanner.jsx';
 
@@ -246,7 +247,8 @@ function MainApp() {
     if (role === 'superadmin') {
       return [
         ...all,
-        { id: 'APPROVE', icon: 'user-check', label: 'Phê duyệt Admin', section: 'SYSTEM' },
+        { id: 'APPROVE',    icon: 'user-check', label: 'Phê duyệt Admin', section: 'SYSTEM' },
+        { id: 'AUDIT_LOG',  icon: 'file-text',  label: 'Lịch sử hệ thống', section: 'SYSTEM' },
       ];
     }
     if (role === 'ADMIN') return all;
@@ -270,6 +272,7 @@ function MainApp() {
       case 'ACCOUNTS':     return <AccountManagerScreen employees={employees} setEmployees={setEmployees} settings={settings} />;
       case 'SETTINGS':     return <SettingsScreen settings={settings} setSettings={setSettings} currentUser={currentUser} />;
       case 'APPROVE':      return <SuperAdminScreen />;
+      case 'AUDIT_LOG':    return <AuditLogScreen />;
       default:             return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;
     }
   };
@@ -381,7 +384,7 @@ function MainApp() {
               <span style={S.userRole}>
                 {currentUser.role === 'superadmin' ? 'Quản trị cấp cao' :
                  currentUser.role === 'ADMIN' ? 'Quản trị viên' :
-                 currentUser.role === 'LEADER' ? 'Kíp trưởng' : 'Nhân sự'}
+                 currentUser.role === 'CHIEF' ? 'Kíp trưởng' : 'Nhân sự'}
               </span>
             </div>
             <button type="button" style={S.btnLogout} onClick={performLogout} title="Đăng xuất">

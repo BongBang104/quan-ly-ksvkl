@@ -23,19 +23,28 @@ export class EmployeesController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  create(@Body() body: any) { return this.svc.upsertOne(body); }
+  create(@Body() body: any) {
+    return this.svc.upsertOne(body, true);  // isNew=true → backend sinh password
+  }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
   update(@Param('id') id: string, @Body() body: any) {
-    return this.svc.upsertOne({ ...body, id });
+    return this.svc.upsertOne({ ...body, id });  // isNew=false (default) → giữ password
   }
 
   @Patch(':id/approve')
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   setApproved(@Param('id') id: string, @Body() body: { isApproved: boolean }) {
     return this.svc.setApproved(id, body.isApproved);
+  }
+
+  @Patch(':id/reset-password')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin')
+  resetPassword(@Param('id') id: string) {
+    return this.svc.resetPassword(id);
   }
 
   @Delete(':id')

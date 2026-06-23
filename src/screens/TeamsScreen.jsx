@@ -17,8 +17,8 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
   // KIỂM TRA QUYỀN (CHỈ ADMIN MỚI ĐƯỢC DUYỆT ĐƠN/ĐỔI TRẠNG THÁI TỔNG)
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
 
-  // LEADER CÓ QUYỀN PHÂN VỊ TRÍ TRONG CA TRỰC CHI TIẾT
-  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'LEADER';
+  // CHIEF CÓ QUYỀN PHÂN VỊ TRÍ TRONG CA TRỰC CHI TIẾT
+  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'CHIEF';
 
   const settings = useMemo(() => ({
       ...globalSettings,

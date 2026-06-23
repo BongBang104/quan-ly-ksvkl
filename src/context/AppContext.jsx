@@ -130,7 +130,7 @@ export const AppProvider = ({ children }) => {
 
     socket.on('request:new', (payload) => {
       reloadRequests();
-      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'CHIEF') {
         const typeLabel = TYPE_LABEL[payload.type] || payload.type || 'yêu cầu';
         const team = payload.requesterTeam ? ` (${payload.requesterTeam})` : '';
         const dateNote = payload.date ? ` ngày ${payload.date}` : '';
@@ -171,7 +171,7 @@ export const AppProvider = ({ children }) => {
 
     socket.on('activity:new', (payload) => {
       reloadActivities();
-      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'CHIEF') {
         const typeLabel = ACT_LABEL[payload.type] || payload.type || 'biến động';
         const empNote   = payload.empName ? ` — ${payload.empName}` : '';
         const dateNote  = payload.startDate ? ` từ ngày ${payload.startDate}` : '';
@@ -235,7 +235,7 @@ export const AppProvider = ({ children }) => {
           `Kíp trưởng Kíp ${payload.team} vừa ban hành bảng phân vị trí Ca ${payload.shift} ngày ${payload.date}. Vị trí của bạn: ${positions} — ${times}.`,
           'urgent'
         );
-      } else if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'LEADER') {
+      } else if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'CHIEF') {
         addNotification(
           'Phân vị trí được ban hành',
           `Kíp trưởng Kíp ${payload?.team} đã ban hành bảng phân vị trí Ca ${payload?.shift} ngày ${payload?.date}.`,

@@ -1,6 +1,7 @@
 import Icon from '../components/Icon.jsx';
 import React, { useState } from 'react';
 import api, { setAuthToken } from '../services/ApiService';
+import { validatePassword } from '../utils/passwordValidator';
 
 /* ─── Floating shape component ─────────────────────────────── */
 function Shape({ style, className }) {
@@ -77,7 +78,8 @@ export default function LoginScreen({ onLogin }) {
   };
 
   const handleSaveSetup = async () => {
-    if (!newPassword || newPassword.length < 6) { window.alert('Lỗi\nMật khẩu mới phải có ít nhất 6 ký tự.'); return; }
+    const { valid, message } = validatePassword(newPassword);
+    if (!valid) { window.alert('Lỗi\n' + message); return; }
     if (newPassword !== confirmPassword) { window.alert('Lỗi\nXác nhận mật khẩu không khớp.'); return; }
     setIsLoading(true);
     try {
@@ -110,7 +112,7 @@ export default function LoginScreen({ onLogin }) {
             </p>
           </div>
 
-          <Field label="MẬT KHẨU MỚI *" icon="lock" type="password" placeholder="Ít nhất 6 ký tự" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          <Field label="MẬT KHẨU MỚI *" icon="lock" type="password" placeholder="≥8 ký tự, có CHỮ HOA, thường và số" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
           <Field label="XÁC NHẬN MẬT KHẨU *" icon="check-circle" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
 
           <button type="button" style={S.submitBtn} onClick={handleSaveSetup} disabled={isLoading}>

@@ -244,3 +244,21 @@ CREATE TABLE IF NOT EXISTS shift_position_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_session_shift ON shift_position_sessions("shiftId");
+
+-- ─── Audit Log — P6 security sprint ──────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "actorId"      varchar,
+  "actorName"    varchar,
+  action         varchar NOT NULL,
+  "resourceType" varchar,
+  "resourceId"   varchar,
+  payload        jsonb,
+  ip             varchar,
+  "userAgent"    varchar,
+  "createdAt"    timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs("createdAt" DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id   ON audit_logs("actorId");

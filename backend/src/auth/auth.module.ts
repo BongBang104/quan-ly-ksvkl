@@ -8,11 +8,13 @@ import { AuthController, PasswordController } from './auth.controller';
 import { AuthService }    from './auth.service';
 import { JwtStrategy }    from './jwt.strategy';
 import { Employee }       from '../employees/employee.entity';
+import { AuditModule }    from '../audit/audit.module';
 
 @Module({
   imports: [
     PassportModule,
     TypeOrmModule.forFeature([Employee]),
+    AuditModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({

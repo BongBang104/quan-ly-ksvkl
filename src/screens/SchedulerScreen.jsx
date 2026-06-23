@@ -31,7 +31,7 @@ export default function SchedulerScreen() {
   } = useContext(AppContext);
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
-  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'LEADER';
+  const canEditRoster = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin' || currentUser?.role === 'CHIEF';
   const isPublishedRef = useRef(isPublished);
 
   useEffect(() => { isPublishedRef.current = isPublished; }, [isPublished]);

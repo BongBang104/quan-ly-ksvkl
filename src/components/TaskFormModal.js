@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 export default function TaskFormModal({ isOpen, onClose, onSave, settings, employees, currentUser }) {
   // PHÂN QUYỀN CỨNG NHẮC DỰA VÀO CƠ SỞ DỮ LIỆU
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
-  const isLeader = currentUser?.role === 'LEADER';
+  const isLeader = currentUser?.role === 'CHIEF';
   const isStaff = currentUser?.role === 'STAFF';
 
   const [type, setType] = useState('REPORT');
@@ -48,7 +48,7 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
     let notifMessage = "";
 
     if (isStaff) {
-        const autoIds = employees.filter(e => e.role === 'ADMIN' || (e.role === 'LEADER' && e.team === currentUser?.team)).map(e => e.id);
+        const autoIds = employees.filter(e => e.role === 'ADMIN' || (e.role === 'CHIEF' && e.team === currentUser?.team)).map(e => e.id);
         finalTargetIds = [...new Set([...autoIds, ...selectedEmps])];
         notifMessage = `${currentUser?.name} (Nhân viên) vừa nộp Báo cáo: "${title.trim()}"`;
     } else {

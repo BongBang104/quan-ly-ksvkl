@@ -21,7 +21,7 @@ export default function DashboardScreen() {
   const smsReports = [];
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
-  const isLeader = currentUser?.role === 'LEADER';
+  const isLeader = currentUser?.role === 'CHIEF';
   const isStaff = currentUser?.role === 'STAFF';
 
   const myRealEmp = useMemo(() => {

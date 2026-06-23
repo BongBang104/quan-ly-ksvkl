@@ -79,7 +79,7 @@ const SmsReportModal = ({ isOpen, onClose, onSaveReport, setConfirmDialog, showT
 
       let targetEmpIds = [];
       if (currentUser?.role === 'STAFF') {
-          targetEmpIds = employees.filter(e => e.role === 'ADMIN' || (e.role === 'LEADER' && e.team === currentUser.team)).map(e => e.id);
+          targetEmpIds = employees.filter(e => e.role === 'ADMIN' || (e.role === 'CHIEF' && e.team === currentUser.team)).map(e => e.id);
       } else {
           targetEmpIds = employees.filter(e => e.team === formData.team).map(e => e.id);
       }
@@ -181,7 +181,7 @@ export default function TasksScreen() {
   const { currentUser, employees, settings, addNotification } = useContext(AppContext);
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
-  const isLeader = currentUser?.role === 'LEADER';
+  const isLeader = currentUser?.role === 'CHIEF';
   const myRoleLabel = isAdmin ? 'Quản lý' : (isLeader ? 'Kíp trưởng' : 'Nhân sự');
 
   const [tasks, setTasks] = useState([]);

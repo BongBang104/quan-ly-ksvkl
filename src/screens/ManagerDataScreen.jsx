@@ -26,7 +26,7 @@ export default function ManagerDataScreen({ employees, setEmployees, settings, o
         return {
             total: employees.length,
             admins: employees.filter(e => e.role === 'ADMIN').length,
-            leaders: employees.filter(e => e.role === 'LEADER' || e.isChief).length,
+            leaders: employees.filter(e => e.role === 'CHIEF' || e.isChief).length,  // CHIEF = kíp trưởng
         };
     }, [employees]);
 
@@ -110,7 +110,7 @@ export default function ManagerDataScreen({ employees, setEmployees, settings, o
 
     const getRoleConfig = (role) => {
         if (role === 'ADMIN') return { label: 'Quản lý', bg: '#fee2e2', text: '#dc2626' };
-        if (role === 'LEADER') return { label: 'Kíp trưởng', bg: '#dbeafe', text: '#2563eb' };
+        if (role === 'CHIEF') return { label: 'Kíp trưởng', bg: '#dbeafe', text: '#2563eb' };
         return { label: 'Nhân viên', bg: '#f1f5f9', text: '#64748b' };
     };
 
