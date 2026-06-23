@@ -2101,11 +2101,14 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
   const [tab, setTab] = useState('compliance');
   const activeTab = TABS.find(t => t.id === tab);
 
+  // contentArea trong App.jsx đã là scroll container (overflowY: auto).
+  // Dùng position: sticky cho header + sidebar thay vì tạo scroll lồng nhau.
   return (
-    <div style={{ flex: 1, backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
 
-      {/* Top header */}
+      {/* Top header — sticky, luôn hiển thị khi scroll */}
       <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
         backgroundColor: '#1e293b', height: 46, flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px',
       }}>
@@ -2118,13 +2121,16 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
         )}
       </div>
 
-      {/* Body: sidebar + content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      {/* Body: sidebar + content (alignItems: flex-start để sidebar không stretch theo content) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
 
-        {/* Sidebar */}
+        {/* Sidebar — sticky dưới header, cuộn độc lập nếu menu dài */}
         <nav style={{
-          width: 216, backgroundColor: '#fff', borderRight: '1px solid #e2e8f0',
-          flexShrink: 0, overflowY: 'auto', padding: '12px 0',
+          width: 216, flexShrink: 0,
+          position: 'sticky', top: 46,
+          maxHeight: 'calc(100vh - 46px)', overflowY: 'auto',
+          backgroundColor: '#fff', borderRight: '1px solid #e2e8f0',
+          padding: '12px 0',
         }}>
           {TAB_GROUPS.map((g, gi) => (
             <div key={g.id} style={{ marginBottom: gi < TAB_GROUPS.length - 1 ? 4 : 0 }}>
@@ -2159,13 +2165,13 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
           ))}
         </nav>
 
-        {/* Content area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Content — flow tự nhiên, cuộn cùng contentArea bên ngoài */}
+        <div style={{ flex: 1, minWidth: 0 }}>
 
           {/* Content header */}
           <div style={{
             backgroundColor: '#fff', padding: '12px 24px',
-            borderBottom: '1px solid #e2e8f0', flexShrink: 0,
+            borderBottom: '1px solid #e2e8f0',
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <div style={{ backgroundColor: '#0f172a', padding: 8, borderRadius: 8, flexShrink: 0 }}>
@@ -2181,8 +2187,8 @@ export default function AnalyticsScreen({ employees = [], currentUser }) {
             </div>
           </div>
 
-          {/* Scrollable tab content */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          {/* Tab content */}
+          <div style={{ backgroundColor: '#f8fafc' }}>
             {tab === 'compliance'     && <ComplianceTab />}
             {tab === 'fairness'       && <FairnessTab />}
             {tab === 'qualifications' && <QualificationsTab />}
