@@ -9,7 +9,8 @@
     "start:debug": "nest start --debug --watch",
     "test": "jest",
     "test:watch": "jest --watch",
-    "reset-superadmin": "ts-node --project tsconfig.json scripts/reset-superadmin.ts"
+    "reset-superadmin": "ts-node --project tsconfig.json scripts/reset-superadmin.ts",
+    "migrate":          "ts-node --project tsconfig.json scripts/run-migration.ts"
   },
   "jest": {
     "moduleFileExtensions": [
