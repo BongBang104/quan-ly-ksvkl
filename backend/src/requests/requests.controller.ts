@@ -4,12 +4,14 @@ import { RolesGuard }      from '../auth/roles.guard';
 import { Roles }           from '../auth/roles.decorator';
 import { RequestsService } from './requests.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { PushService }          from '../push/push.service';
 
 @Controller('api/requests')
 export class RequestsController {
   constructor(
     private readonly svc: RequestsService,
     private readonly notify: NotificationsGateway,
+    private readonly push: PushService,
   ) {}
 
   @Get()
@@ -33,6 +35,9 @@ export class RequestsController {
       id: req.id, type: req.type,
       requesterName: req.requesterName, requesterTeam: req.requesterTeam,
     });
+    const typeLabel = req.type ?? 'yêu cầu';
+    const who = req.requesterName ? ` từ ${req.requesterName}` : '';
+    this.push.sendToAll(`📝 Yêu cầu mới${who}`, typeLabel).catch(() => {});
     return req;
   }
 
@@ -42,6 +47,10 @@ export class RequestsController {
   async update(@Param('id') id: string, @Body() body: any) {
     const req = await this.svc.upsertOne({ ...body, id });
     this.notify.broadcastNotification('request:updated', { id, status: req.status, employeeId: req.employeeId });
+    if (req.employeeId) {
+      const statusLabel = req.status === 'approved' ? 'được chấp thuận' : req.status === 'rejected' ? 'bị từ chối' : 'được cập nhật';
+      this.push.sendToUsers([req.employeeId], '✅ Yêu cầu của bạn', `Yêu cầu của bạn đã ${statusLabel}.`).catch(() => {});
+    }
     return req;
   }
 

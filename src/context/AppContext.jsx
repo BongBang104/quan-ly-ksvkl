@@ -5,6 +5,13 @@ import api, { clearAuthToken, getAuthToken, getApiBaseUrl } from '../services/Ap
 
 export const AppContext = createContext();
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
 const DEFAULT_SETTINGS = {
   teams: ['Kíp A', 'Kíp B', 'Kíp C', 'Kíp D', 'Hành chính'],
   shiftTypes: [
@@ -106,6 +113,47 @@ export const AppProvider = ({ children }) => {
       await reloadSchedule();
     };
     loadPrivate();
+  }, [currentUser?.id]); // eslint-disable-line
+
+  // ── PWA: Service Worker + Web Push ────────────────────────────────────
+  useEffect(() => {
+    if (!currentUser) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (Notification.permission === 'denied') return;
+
+    const setupPush = async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+
+        // Yêu cầu quyền nếu chưa cấp
+        const perm = Notification.permission === 'granted'
+          ? 'granted'
+          : await Notification.requestPermission();
+        if (perm !== 'granted') return;
+
+        // Lấy VAPID public key từ backend
+        const { data } = await api.get('/api/push/vapid-public-key');
+        if (!data?.publicKey) return;
+
+        // Subscribe push
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly:      true,
+          applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+        });
+
+        // Gửi subscription lên backend để lưu
+        await api.post('/api/push/subscribe', sub.toJSON());
+      } catch (e) {
+        if (e?.name !== 'NotAllowedError') {
+          console.error('[Push] setup failed:', e);
+        }
+      }
+    };
+
+    // Delay nhỏ để login flow hoàn tất trước
+    const t = setTimeout(setupPush, 1500);
+    return () => clearTimeout(t);
   }, [currentUser?.id]); // eslint-disable-line
 
   // ── WebSocket connection after login ──────────────────────────────────

@@ -265,3 +265,16 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs("createdAt" DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id   ON audit_logs("actorId");
+
+-- ─── Push Subscriptions — Web Push / PWA ────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id          VARCHAR PRIMARY KEY,
+  "userId"    VARCHAR NOT NULL,
+  endpoint    TEXT NOT NULL UNIQUE,
+  p256dh      TEXT NOT NULL,
+  auth        TEXT NOT NULL,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions("userId");

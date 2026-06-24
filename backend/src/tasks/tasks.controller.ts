@@ -4,12 +4,14 @@ import { RolesGuard }   from '../auth/roles.guard';
 import { Roles }        from '../auth/roles.decorator';
 import { TasksService } from './tasks.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { PushService }          from '../push/push.service';
 
 @Controller('api/tasks')
 export class TasksController {
   constructor(
     private readonly svc: TasksService,
     private readonly notify: NotificationsGateway,
+    private readonly push: PushService,
   ) {}
 
   @Get()
@@ -32,6 +34,12 @@ export class TasksController {
   async create(@Body() body: any) {
     const task = await this.svc.upsertOne(body);
     this.notify.broadcastNotification('task:new', { id: task.id, title: task.title, targetEmpIds: task.targetEmpIds });
+    const targets = Array.isArray(task.targetEmpIds) && task.targetEmpIds.length
+      ? task.targetEmpIds
+      : null;
+    if (targets) {
+      this.push.sendToUsers(targets, '📋 Nhiệm vụ mới', task.title ?? 'Bạn có nhiệm vụ mới').catch(() => {});
+    }
     return task;
   }
 

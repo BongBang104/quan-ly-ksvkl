@@ -20,6 +20,7 @@ import { ShiftExchangesModule }  from './shift-exchanges/shift-exchanges.module'
 import { ShiftBriefingsModule }  from './shift-briefings/shift-briefings.module';
 import { ShiftHandoversModule }  from './shift-handovers/shift-handovers.module';
 import { AuditModule }           from './audit/audit.module';
+import { PushModule }            from './push/push.module';
 
 import { Employee }             from './employees/employee.entity';
 import { Setting }              from './settings/settings.entity';
@@ -34,6 +35,7 @@ import { ShiftExchange }        from './shift-exchanges/shift-exchange.entity';
 import { ShiftBriefing }        from './shift-briefings/shift-briefing.entity';
 import { ShiftHandover }        from './shift-handovers/shift-handover.entity';
 import { AuditLog }             from './audit/audit-log.entity';
+import { PushSubscription }      from './push/push-subscription.entity';
 
 @Module({
   imports: [
@@ -50,7 +52,7 @@ import { AuditLog }             from './audit/audit-log.entity';
         username: cfg.get('DB_USER',  'postgres'),
         password: cfg.get('DB_PASS',  'postgres'),
         database: cfg.get('DB_NAME',  'atc_pro'),
-        entities: [Employee, Setting, Activity, Schedule, Shift, ShiftPositionSession, Task, Request, FatigueReport, ShiftExchange, ShiftBriefing, ShiftHandover, AuditLog],
+        entities: [Employee, Setting, Activity, Schedule, Shift, ShiftPositionSession, Task, Request, FatigueReport, ShiftExchange, ShiftBriefing, ShiftHandover, AuditLog, PushSubscription],
         synchronize: false, // Schema do migration.sql quản lý. KHÔNG bật trong production.
         logging: false,
       }),
@@ -71,6 +73,7 @@ import { AuditLog }             from './audit/audit-log.entity';
     ShiftBriefingsModule,
     ShiftHandoversModule,
     AuditModule,
+    PushModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
