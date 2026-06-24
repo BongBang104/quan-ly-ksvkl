@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -311,7 +311,7 @@ def get_roster_checklist(draft: RosterDraft) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/macro/review")
-def review_macro(draft: Any) -> Any:
+def review_macro(draft: Any = Body(...)) -> Any:
     """Rà soát phân ca cấp trung tâm (SchedulerScreen). QĐ 2288 + QĐ 2701."""
     from app.routers.schemas_macro import MacroRosterDraft, MacroReviewResult
     from app.review.chu_ky_review import review_macro_draft
@@ -320,7 +320,7 @@ def review_macro(draft: Any) -> Any:
 
 
 @router.post("/macro/fairness")
-def review_macro_fairness(draft: Any) -> dict:
+def review_macro_fairness(draft: Any = Body(...)) -> dict:
     """Tính công bằng phân ca từ MacroRosterDraft (scheduleData cấp tháng). C3 fix."""
     from app.routers.schemas_macro import MacroRosterDraft
     from app.fairness.fairness_macro import compute_fairness_from_macro
@@ -329,7 +329,7 @@ def review_macro_fairness(draft: Any) -> dict:
 
 
 @router.post("/macro/checklist")
-def get_macro_checklist(draft: Any) -> dict:
+def get_macro_checklist(draft: Any = Body(...)) -> dict:
     """Sinh checklist QĐ 2288 Phụ lục I cấp tháng."""
     from app.routers.schemas_macro import MacroRosterDraft
     from app.review.chu_ky_review import review_macro_draft
