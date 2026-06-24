@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
@@ -44,7 +45,11 @@ async function ensureHiddenSuperAdmin(dataSource: DataSource) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Tắt body parser mặc định (100kb) để dùng giới hạn tùy chỉnh
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  // Lịch 30 ngày có thể lên đến vài MB — đặt giới hạn 10MB
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   const frontendUrl = process.env.FRONTEND_URL;
   if (!frontendUrl) {
