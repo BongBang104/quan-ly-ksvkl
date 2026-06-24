@@ -14,7 +14,7 @@ export class PushController {
   @Post('subscribe')
   @UseGuards(JwtAuthGuard)
   async subscribe(@Req() req: any, @Body() body: any) {
-    await this.push.subscribe(req.user.sub, body);
+    await this.push.subscribe(req.user.id, body);
     return { ok: true };
   }
 
