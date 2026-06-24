@@ -266,7 +266,7 @@ function MainApp() {
       case 'MANAGER_DATA': return <ManagerDataScreen  {...p} onUpdateEmployeeId={handleUpdateEmployeeId} />;
       case 'STATS':        return <StatsScreen        {...p} scheduleData={scheduleData} />;
       case 'ANALYTICS':    return <AnalyticsScreen    {...p} />;
-      case 'ACCOUNTS':     return <AccountManagerScreen employees={employees} setEmployees={setEmployees} settings={settings} />;
+      case 'ACCOUNTS':     return <AccountManagerScreen {...p} />;
       case 'SETTINGS':     return <SettingsScreen settings={settings} setSettings={setSettings} currentUser={currentUser} />;
       case 'APPROVE':      return <SuperAdminScreen />;
       case 'AUDIT_LOG':    return <AuditLogScreen />;

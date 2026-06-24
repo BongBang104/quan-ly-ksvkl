@@ -1,5 +1,7 @@
 import { Controller, Get, Put, Post, Delete, Param, Body, UseGuards, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard }   from '../auth/roles.guard';
+import { Roles }        from '../auth/roles.decorator';
 import { TasksService } from './tasks.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
@@ -17,7 +19,8 @@ export class TasksController {
   }
 
   @Put()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   async replaceByTeam(@Query('team') team: string, @Body() body: { list: any[] }) {
     const result = await this.svc.replaceByTeam(team, body.list);
     this.notify.broadcastNotification('tasks:updated', { team });
@@ -41,7 +44,8 @@ export class TasksController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   async remove(@Param('id') id: string, @Query('team') team?: string) {
     await this.svc.remove(id, team);
     this.notify.broadcastNotification('task:deleted', { id });

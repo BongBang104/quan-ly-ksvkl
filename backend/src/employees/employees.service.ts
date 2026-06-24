@@ -83,8 +83,10 @@ export class EmployeesService {
       generatedPassword = this.generatePassword();
       emp.password     = await bcrypt.hash(generatedPassword, 10);
       emp.isFirstLogin = true;
-    } else if (emp.password) {
-      emp.password = await this.hashIfPlain(emp.password);
+    } else {
+      // isNew=false: không cho đổi password qua endpoint này.
+      // Dùng PATCH /api/employees/:id/password (có ChangePasswordDto validation).
+      delete (emp as any).password;
     }
 
     const saved = await this.repo.save(emp);

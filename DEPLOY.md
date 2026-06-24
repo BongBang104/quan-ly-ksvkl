@@ -31,7 +31,11 @@ HIDDEN_ADMIN_ID=<id_khó_đoán>        # đổi khỏi tctsvip
 
 ### 3. Khởi động
 ```bash
-docker compose up -d
+# Script tự kiểm tra dist/ trước khi compose up
+chmod +x deploy.sh && ./deploy.sh
+
+# Hoặc thủ công (nhớ build frontend trước):
+# npm run build && docker compose up -d
 ```
 
 ### 4. Lấy mật khẩu superadmin lần đầu

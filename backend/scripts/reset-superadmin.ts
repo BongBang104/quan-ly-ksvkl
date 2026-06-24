@@ -21,17 +21,23 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import { Employee } from '../src/employees/employee.entity';
 
 async function getDataSource(): Promise<DataSource> {
-  const ds = new DataSource({
-    type:        'postgres',
-    host:        process.env.DB_HOST ?? 'localhost',
-    port:        parseInt(process.env.DB_PORT ?? '5432'),
-    username:    process.env.DB_USER ?? 'postgres',
-    password:    process.env.DB_PASS,
-    database:    process.env.DB_NAME ?? 'atc_pro',
-    entities:    [Employee],
-    synchronize: false,
-    ssl:         process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  });
+  const url = process.env.DATABASE_URL;
+  const ssl  = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
+  const ds = new DataSource(
+    url
+      ? { type: 'postgres', url, entities: [Employee], synchronize: false, ssl }
+      : {
+          type:        'postgres',
+          host:        process.env.DB_HOST ?? 'localhost',
+          port:        parseInt(process.env.DB_PORT ?? '5432'),
+          username:    process.env.DB_USER ?? 'postgres',
+          password:    process.env.DB_PASS ?? '',
+          database:    process.env.DB_NAME ?? 'atc_pro',
+          entities:    [Employee],
+          synchronize: false,
+          ssl,
+        },
+  );
   await ds.initialize();
   return ds;
 }
