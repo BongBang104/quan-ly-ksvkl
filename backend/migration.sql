@@ -2,21 +2,24 @@
 -- Run this if you prefer manual migration over synchronize:true
 
 CREATE TABLE IF NOT EXISTS employees (
-  id           VARCHAR PRIMARY KEY,
-  name         VARCHAR NOT NULL,
-  "icaoCode"   VARCHAR,
-  team         VARCHAR,
-  role         VARCHAR NOT NULL DEFAULT 'user',
-  position     VARCHAR,
-  qualification VARCHAR,
-  "isChief"    BOOLEAN NOT NULL DEFAULT FALSE,
-  "isVip"      BOOLEAN NOT NULL DEFAULT FALSE,
-  phone        VARCHAR,
-  email        VARCHAR,
-  password     VARCHAR NOT NULL,
-  "isFirstLogin" BOOLEAN NOT NULL DEFAULT TRUE,
-  "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       VARCHAR PRIMARY KEY,
+  name                     VARCHAR NOT NULL,
+  "icaoCode"               VARCHAR,
+  team                     VARCHAR,
+  role                     VARCHAR NOT NULL DEFAULT 'STAFF',
+  position                 VARCHAR,
+  qualification            VARCHAR,
+  "qualificationExpiresAt" DATE,
+  "qualificationIsActive"  BOOLEAN NOT NULL DEFAULT TRUE,
+  "isChief"                BOOLEAN NOT NULL DEFAULT FALSE,
+  "isVip"                  BOOLEAN NOT NULL DEFAULT FALSE,
+  phone                    VARCHAR,
+  email                    VARCHAR,
+  password                 VARCHAR NOT NULL,
+  "isFirstLogin"           BOOLEAN NOT NULL DEFAULT TRUE,
+  "isApproved"             BOOLEAN NOT NULL DEFAULT TRUE,
+  "createdAt"              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt"              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS settings (
