@@ -43,6 +43,6 @@ export class ShiftHandoversService {
   }
 
   findByTeamDate(team: string, date: string): Promise<ShiftHandover[]> {
-    return this.repo.find({ where: { team, handoverDate: date }, order: { createdAt: 'DESC' } });
+    return this.repo.find({ where: { team, handoverDate: date }, order: { shiftCode: 'ASC' } });
   }
 }

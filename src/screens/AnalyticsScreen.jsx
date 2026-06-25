@@ -1046,6 +1046,12 @@ function FatigueReportTab({ currentUser }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
 
+  useEffect(() => {
+    const handler = (e) => { if (e.detail?.subTab === 'fatigue') setView('form'); };
+    window.addEventListener('atc:navigate-subtab', handler);
+    return () => window.removeEventListener('atc:navigate-subtab', handler);
+  }, []);
+
   const submit = async () => {
     if (!fatigueOnset || !kssScore || !impactDescription) {
       window.alert('Vui lòng điền các trường bắt buộc (Phần B).');
@@ -1345,49 +1351,162 @@ function FatigueForChiefList() {
 }
 
 function FatigueSummary() {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    (async () => {
-      const end   = new Date().toISOString().slice(0, 10);
-      const start = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-      try { const { data: arr } = await api.get(`/api/fatigue-reports/summary?start=${start}&end=${end}`); setData(arr); }
-      catch (e) { console.error(e); }
-    })();
-  }, []);
-  if (!data) return <Spinner size={32} color="#2563eb" />;
+  const now    = new Date();
+  const d30ago = new Date(Date.now() - 30 * 24 * 3600_000);
+  const [startDate, setStartDate] = useState(d30ago.toISOString().slice(0, 10));
+  const [endDate,   setEndDate]   = useState(now.toISOString().slice(0, 10));
+  const [data,      setData]      = useState(null);
+  const [loading,   setLoading]   = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data: arr } = await api.get(
+        `/api/fatigue-reports/summary?start=${startDate}&end=${endDate}`
+      );
+      setData(arr);
+    } catch (e) {
+      console.error(e);
+      window.alert('Lỗi tải dữ liệu: ' + (e?.response?.data?.message ?? e.message));
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
   const dist = {};
   for (let i = 1; i <= 9; i++) dist[i] = 0;
-  data.forEach(r => { dist[r.kssScore] = (dist[r.kssScore] || 0) + 1; });
+  (data || []).forEach(r => { dist[r.kssScore] = (dist[r.kssScore] || 0) + 1; });
   const maxV = Math.max(1, ...Object.values(dist));
+
+  const factorCount = {};
+  (data || []).forEach(r => {
+    [...(r.factors?.schedule || []), ...(r.factors?.operation || []), ...(r.factors?.personal || [])]
+      .forEach(f => { factorCount[f] = (factorCount[f] || 0) + 1; });
+  });
+  const topFactors = Object.entries(factorCount).sort(([,a],[,b]) => b - a).slice(0, 5);
+
+  const byStatus = {};
+  (data || []).forEach(r => { byStatus[r.status] = (byStatus[r.status] || 0) + 1; });
+
   return (
     <div>
-      <div style={{ padding: 12, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+      <div style={{ padding: 12, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
+                    borderRadius: 8, fontSize: 12, color: '#0c4a6e', marginBottom: 16 }}>
         Tổng hợp ẩn danh — không hiển thị tên người báo cáo (QĐ 2289 Chương VI mục III).
+        Dữ liệu chỉ ADMIN và Quản trị cấp cao xem được.
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Tổng báo cáo (30 ngày)', value: data.length, color: '#2563eb', bg: '#eff6ff' },
-          { label: 'KSS ≥ 7', value: data.filter(r => r.kssScore >= 7).length, color: '#dc2626', bg: '#fef2f2' },
-          { label: 'Đã xử lý', value: data.filter(r => ['acknowledged','analyzed'].includes(r.status)).length, color: '#16a34a', bg: '#f0fdf4' },
-        ].map(c => (
-          <div key={c.label} style={{ padding: 16, borderRadius: 8, backgroundColor: c.bg, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: c.color }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{c.label}</div>
-          </div>
+
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
+        <div>
+          <label style={{ fontSize: 12, color: '#475569', display: 'block', marginBottom: 4 }}>Từ ngày</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                 style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: '#475569', display: 'block', marginBottom: 4 }}>Đến ngày</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                 style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
+        </div>
+        <button onClick={load} disabled={loading}
+                style={{ padding: '8px 20px', backgroundColor: '#2563eb', color: '#fff',
+                         border: 'none', borderRadius: 6, cursor: 'pointer',
+                         fontWeight: 600, fontSize: 13, opacity: loading ? 0.6 : 1 }}>
+          {loading ? 'Đang tải…' : '🔍 Tìm kiếm'}
+        </button>
+        {[{ label: '7 ngày', days: 7 }, { label: '30 ngày', days: 30 }, { label: '90 ngày', days: 90 }].map(p => (
+          <button key={p.label} onClick={() => {
+            const s = new Date(Date.now() - p.days * 24 * 3600_000).toISOString().slice(0, 10);
+            const e = new Date().toISOString().slice(0, 10);
+            setStartDate(s); setEndDate(e);
+          }} style={{ padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#475569',
+                      border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+            {p.label}
+          </button>
         ))}
       </div>
-      <h3 style={{ fontSize: 14, marginBottom: 12 }}>Phân bố điểm KSS</h3>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 180, padding: 12, backgroundColor: '#f8fafc', borderRadius: 8 }}>
-        {Object.entries(dist).map(([k, v]) => (
-          <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontSize: 11, marginBottom: 4 }}>{v}</div>
-            <div style={{ width: '100%', height: `${Math.max(2, (v / maxV) * 140)}px`,
-                          backgroundColor: parseInt(k) >= 7 ? '#dc2626' : parseInt(k) >= 5 ? '#f97316' : '#16a34a',
-                          borderRadius: '4px 4px 0 0' }} />
-            <div style={{ fontSize: 11, marginTop: 4 }}>{k}</div>
+
+      {loading && <Spinner size={32} color="#2563eb" />}
+
+      {!loading && data !== null && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                        gap: 12, marginBottom: 24 }}>
+            {[
+              { label: 'Tổng báo cáo',    value: data.length,                                                                   color: '#2563eb', bg: '#eff6ff', icon: '📋' },
+              { label: 'KSS ≥ 7 (cao)',   value: data.filter(r => r.kssScore >= 7).length,                                     color: '#dc2626', bg: '#fef2f2', icon: '🔴' },
+              { label: 'KSS 5-6 (trung)', value: data.filter(r => r.kssScore >= 5 && r.kssScore < 7).length,                  color: '#f59e0b', bg: '#fffbeb', icon: '🟡' },
+              { label: 'Đã xử lý',        value: data.filter(r => ['acknowledged','analyzed','closed'].includes(r.status)).length, color: '#16a34a', bg: '#f0fdf4', icon: '✅' },
+              { label: 'Chờ xử lý',       value: data.filter(r => r.status === 'submitted').length,                            color: '#f59e0b', bg: '#fffbeb', icon: '⏳' },
+              { label: 'Red Line',         value: data.filter(r => r.isRedLine).length,                                         color: '#dc2626', bg: '#fef2f2', icon: '⚠️' },
+            ].map(c => (
+              <div key={c.label} style={{ padding: 16, borderRadius: 8, backgroundColor: c.bg,
+                                          border: '1px solid ' + c.color + '30', textAlign: 'center' }}>
+                <div style={{ fontSize: 22, marginBottom: 4 }}>{c.icon}</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: c.color }}>{c.value}</div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>{c.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+
+          {data.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+              Không có báo cáo nào trong khoảng thời gian đã chọn.
+            </div>
+          ) : (
+            <>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: '#1e293b' }}>Phân bố điểm KSS</h3>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 160,
+                            padding: '12px 12px 0', backgroundColor: '#f8fafc',
+                            borderRadius: 8, marginBottom: 8, border: '1px solid #e2e8f0' }}>
+                {Object.entries(dist).map(([k, v]) => (
+                  <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: '#475569' }}>{v > 0 ? v : ''}</div>
+                    <div style={{ width: '100%', height: `${Math.max(4, (v / maxV) * 120)}px`,
+                                  backgroundColor: parseInt(k) >= 7 ? '#dc2626' : parseInt(k) >= 5 ? '#f97316' : '#16a34a',
+                                  borderRadius: '4px 4px 0 0', transition: 'height 0.3s ease' }} />
+                    <div style={{ fontSize: 12, marginTop: 6, fontWeight: 600, color: '#374151' }}>{k}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 16, fontSize: 11, color: '#64748b', marginBottom: 24, flexWrap: 'wrap' }}>
+                <span>🟢 KSS 1-4: Tỉnh táo</span><span>🟠 KSS 5-6: Mệt vừa</span><span>🔴 KSS 7-9: Mệt nghiêm trọng</span>
+              </div>
+
+              {topFactors.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: '#1e293b' }}>
+                    Yếu tố gây mệt thường gặp (Top {topFactors.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+                    {topFactors.map(([factor, count]) => (
+                      <div key={factor} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: '#374151', flex: 1 }}>{factor}</span>
+                        <div style={{ flex: 3, height: 20, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${(count / (topFactors[0]?.[1] || 1)) * 100}%`, height: '100%',
+                                        backgroundColor: '#2563eb', borderRadius: 4, transition: 'width 0.3s ease' }} />
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', minWidth: 24, textAlign: 'right' }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: '#1e293b' }}>Trạng thái xử lý</h3>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+                {Object.entries(byStatus).map(([status, count]) => (
+                  <div key={status} style={{ padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                    backgroundColor: { submitted:'#fef3c7', acknowledged:'#dcfce7', analyzed:'#dbeafe', closed:'#f1f5f9' }[status] || '#f1f5f9',
+                    color: { submitted:'#92400e', acknowledged:'#166534', analyzed:'#1e40af', closed:'#475569' }[status] || '#475569',
+                    border: '1px solid #e2e8f0' }}>
+                    {{ submitted:'Đã gửi', acknowledged:'Đã xác nhận', analyzed:'Đã phân tích', closed:'Đã đóng' }[status] || status}: {count}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1943,7 +2062,7 @@ const WEST_FIELDS = [
   { key: 'traffic',   label: 'T — Traffic (Tình trạng bay)', placeholder: 'Lưu lượng hiện tại, xu hướng, huấn lệnh đã cấp, đường CHC đang sử dụng…' },
 ];
 
-function WestHandoverTab({ currentUser }) {
+function WestHandoverEditor({ currentUser }) {
   const [team, setTeam] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [shiftCode, setShiftCode] = useState('S');
@@ -2090,6 +2209,125 @@ function WestHandoverTab({ currentUser }) {
       )}
     </div>
   );
+}
+
+function WestHandoverViewOnly({ currentUser }) {
+  const [team,      setTeam]      = useState(currentUser?.team || '');
+  const [date,      setDate]      = useState(() => new Date().toISOString().slice(0, 10));
+  const [shiftCode, setShiftCode] = useState('S');
+  const [handover,  setHandover]  = useState(null);
+  const [loading,   setLoading]   = useState(false);
+
+  const load = async () => {
+    if (!team) { window.alert('Vui lòng nhập tên kíp.'); return; }
+    setLoading(true);
+    try {
+      const { data } = await api.get(
+        `/api/shift-handovers?team=${encodeURIComponent(team)}&date=${date}`
+      );
+      const found = Array.isArray(data)
+        ? data.find(h => h.shiftCode === shiftCode)
+        : (data?.shiftCode === shiftCode ? data : null);
+      setHandover(found || null);
+    } catch (e) {
+      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ padding: 20, maxWidth: 900 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', marginBottom: 20,
+                    backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 13, color: '#0c4a6e' }}>
+        <Icon name="eye" size={16} color="#0284c7" />
+        <span>
+          <strong>Chế độ xem (VIEW ONLY)</strong> — Nhân viên xem phiếu giao ca.
+          Kíp trưởng chịu trách nhiệm tạo và ký phiếu giao nhận.
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
+        <div>
+          <label style={T.lbl}>Kíp</label>
+          <input type="text" style={T.inp} value={team} onChange={e => setTeam(e.target.value)} placeholder="A / B / C / D" />
+        </div>
+        <div>
+          <label style={T.lbl}>Ngày</label>
+          <input type="date" style={T.inp} value={date} onChange={e => setDate(e.target.value)} />
+        </div>
+        <div>
+          <label style={T.lbl}>Ca</label>
+          <select style={T.inp} value={shiftCode} onChange={e => setShiftCode(e.target.value)}>
+            <option value="S">Ca S (ngày)</option>
+            <option value="D">Ca D (đêm)</option>
+          </select>
+        </div>
+        <button type="button" style={{ ...T.btn, opacity: loading ? 0.6 : 1 }} onClick={load} disabled={loading}>
+          {loading ? <Spinner size={15} color="#fff" /> : <Icon name="search" size={15} color="#fff" />}
+          <span style={{ marginLeft: 8 }}>Xem phiếu</span>
+        </button>
+      </div>
+
+      {handover ? (
+        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', backgroundColor: handover.status === 'both_signed' ? '#f0fdf4' : '#fffbeb',
+                        borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
+              Phiếu giao nhận ca — Kíp {handover.team} · Ca {handover.shiftCode}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
+                           backgroundColor: handover.status === 'both_signed' ? '#dcfce7' : '#fef3c7',
+                           color: handover.status === 'both_signed' ? '#166534' : '#92400e' }}>
+              {handover.status === 'both_signed' ? '✓ Hoàn tất' : '⏳ Chờ ký'}
+            </span>
+          </div>
+          <div style={{ padding: 20 }}>
+            {WEST_FIELDS.map(f => (
+              <div key={f.key} style={{ marginBottom: 16 }}>
+                <label style={{ ...T.lbl, fontSize: 12 }}>{f.label}</label>
+                <textarea rows={3} disabled value={handover[f.key] || '(Chưa có nội dung)'}
+                          style={{ ...T.inp, width: '100%', backgroundColor: '#f8fafc',
+                                   color: '#374151', cursor: 'default', resize: 'none' }} />
+              </div>
+            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 8 }}>
+              {[
+                { label: 'Kíp giao', sig: handover.outgoingSignerName, time: handover.outgoingSignedAt },
+                { label: 'Kíp nhận', sig: handover.incomingSignerName, time: handover.incomingSignedAt },
+              ].map(({ label, sig, time }) => (
+                <div key={label} style={{ padding: 12, borderRadius: 8,
+                                          backgroundColor: sig ? '#f0fdf4' : '#f8fafc',
+                                          border: '1px solid ' + (sig ? '#bbf7d0' : '#e2e8f0') }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>{label}</div>
+                  {sig ? (
+                    <>
+                      <div style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ {sig}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                        {new Date(time).toLocaleString('vi-VN')}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Chưa ký xác nhận</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : !loading ? (
+        <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc',
+                      borderRadius: 8, border: '1px dashed #e2e8f0', fontSize: 14 }}>
+          <Icon name="file-text" size={32} color="#cbd5e1" />
+          <div style={{ marginTop: 12 }}>Nhập kíp, chọn ngày và ca, nhấn "Xem phiếu" để tra cứu.</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function WestHandoverTab({ currentUser }) {
+  const isChief = ['ADMIN', 'superadmin', 'CHIEF'].includes(currentUser?.role);
+  if (!isChief) return <WestHandoverViewOnly currentUser={currentUser} />;
+  return <WestHandoverEditor currentUser={currentUser} />;
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -2856,6 +3094,17 @@ function TasksFeedTab() {
 export default function AnalyticsScreen({ employees = [], currentUser }) {
   const [tab, setTab] = useState('compliance');
   const activeTab = TABS.find(t => t.id === tab);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const { subTab } = e.detail || {};
+      if (!subTab) return;
+      const found = TABS.find(t => t.id === subTab);
+      if (found) setTab(subTab);
+    };
+    window.addEventListener('atc:navigate-subtab', handler);
+    return () => window.removeEventListener('atc:navigate-subtab', handler);
+  }, []);
 
   // contentArea trong App.jsx đã là scroll container (overflowY: auto).
   // Dùng position: sticky cho header + sidebar thay vì tạo scroll lồng nhau.

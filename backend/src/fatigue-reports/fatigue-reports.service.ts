@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
+import { Between, Repository, LessThan, MoreThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { FatigueReport } from './fatigue-report.entity';
 
@@ -52,26 +52,24 @@ export class FatigueReportsService {
 
   async findAnonymizedSummary(periodStart: Date, periodEnd: Date) {
     const reports = await this.repo.find({
-      where: { createdAt: MoreThan(periodStart) },
+      where: { createdAt: Between(periodStart, periodEnd) },
       order: { createdAt: 'DESC' },
     });
-    return reports
-      .filter(r => r.createdAt <= periodEnd)
-      .map(r => ({
-        anonCode:     r.anonCode,
-        facility:     r.facility,
-        shiftType:    r.shiftType,
-        kssScore:     r.kssScore,
-        fatigueOnset: r.fatigueOnset,
-        factors: {
-          schedule:  r.factorsSchedule,
-          operation: r.factorsOperation,
-          personal:  r.factorsPersonal,
-        },
-        status:    r.status,
-        createdAt: r.createdAt,
-        isRedLine: r.isRedLine,
-      }));
+    return reports.map(r => ({
+      anonCode:     r.anonCode,
+      facility:     r.facility,
+      shiftType:    r.shiftType,
+      kssScore:     r.kssScore,
+      fatigueOnset: r.fatigueOnset,
+      factors: {
+        schedule:  r.factorsSchedule  ?? [],
+        operation: r.factorsOperation ?? [],
+        personal:  r.factorsPersonal  ?? [],
+      },
+      status:    r.status,
+      createdAt: r.createdAt,
+      isRedLine: r.isRedLine ?? false,
+    }));
   }
 
   async notifySafetyDept(id: string): Promise<FatigueReport> {

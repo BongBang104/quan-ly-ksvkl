@@ -72,8 +72,14 @@ export class FatigueReportsController {
 
   @Get('summary')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'superadmin', 'CHIEF')
+  @Roles('ADMIN', 'superadmin')
   summary(@Query('start') start: string, @Query('end') end: string) {
-    return this.svc.findAnonymizedSummary(new Date(start), new Date(end));
+    const startDate = start ? new Date(start) : new Date(Date.now() - 30 * 24 * 3600_000);
+    const endDate   = end   ? new Date(end)   : new Date();
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('start và end phải là ISO date string hợp lệ (YYYY-MM-DD)');
+    }
+    endDate.setHours(23, 59, 59, 999);
+    return this.svc.findAnonymizedSummary(startDate, endDate);
   }
 }

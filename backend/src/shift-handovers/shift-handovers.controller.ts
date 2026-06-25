@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { IsString, IsOptional } from 'class-validator';
-import { JwtAuthGuard }         from '../auth/jwt-auth.guard';
+import { JwtAuthGuard }          from '../auth/jwt-auth.guard';
+import { RolesGuard }            from '../auth/roles.guard';
+import { Roles }                 from '../auth/roles.decorator';
 import { ShiftHandoversService } from './shift-handovers.service';
 
 class UpsertHandoverDto {
@@ -21,7 +23,8 @@ export class ShiftHandoversController {
   constructor(private readonly svc: ShiftHandoversService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   createOrGet(@Body() dto: UpsertHandoverDto) {
     return this.svc.createOrGet(dto.team, dto.handoverDate, dto.shiftCode);
   }
@@ -33,19 +36,22 @@ export class ShiftHandoversController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   update(@Param('id') id: string, @Body() dto: UpdateHandoverDto) {
     return this.svc.update(id, dto);
   }
 
   @Put(':id/sign-outgoing')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   signOutgoing(@Param('id') id: string, @Req() req: any) {
     return this.svc.signOutgoing(id, req.user.id, req.user.name ?? req.user.id);
   }
 
   @Put(':id/sign-incoming')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'superadmin', 'CHIEF')
   signIncoming(@Param('id') id: string, @Req() req: any) {
     return this.svc.signIncoming(id, req.user.id, req.user.name ?? req.user.id);
   }

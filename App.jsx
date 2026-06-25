@@ -260,7 +260,15 @@ function MainApp() {
       requests, setRequests, currentUser,
     };
     switch (activeTab) {
-      case 'DASHBOARD':    return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} smsReports={[]} />;
+      case 'DASHBOARD':    return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} smsReports={[]}
+        onNavigateTo={(screen, subTab) => {
+          setActiveTab(screen);
+          if (subTab) {
+            const groupMap = { exchange:'forms', fatigue:'forms', briefing:'forms', handover:'forms', checklist:'forms', compliance:'analysis', fairness:'analysis', tasks_feed:'operations' };
+            setTimeout(() => window.dispatchEvent(new CustomEvent('atc:navigate-subtab', { detail: { subTab, group: groupMap[subTab] || null } })), 150);
+          }
+        }}
+      />;
       case 'SCHEDULER':    return <SchedulerScreen    {...p} scheduleData={scheduleData} setScheduleData={setScheduleData} extraAssignments={extraAssignments} setExtraAssignments={setExtraAssignments} isPublished={isPublished} setIsPublished={setIsPublished} />;
       case 'TEAMS':        return <TeamsScreen        {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;
       case 'MANAGER_DATA': return <ManagerDataScreen  {...p} onUpdateEmployeeId={handleUpdateEmployeeId} />;

@@ -10,11 +10,11 @@ import { AppContext } from '../context/AppContext';
 import { DataService } from '../services/DataService';
 import api from '../services/ApiService';
 
-export default function DashboardScreen() {
-  
+export default function DashboardScreen({ onNavigateTo } = {}) {
+
   const {
       currentUser, employees, settings, activities, setActivities, // Cần gọi setActivities để tạo Biến động
-      requests, setRequests, scheduleData, extraAssignments, 
+      requests, setRequests, scheduleData, extraAssignments,
       addNotification, setIsNotifOpen
   } = useContext(AppContext);
 
@@ -22,6 +22,7 @@ export default function DashboardScreen() {
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
   const isLeader = currentUser?.role === 'CHIEF';
+  const isChief = isLeader;
   const isStaff = currentUser?.role === 'STAFF';
 
   const myRealEmp = useMemo(() => {
@@ -38,10 +39,8 @@ export default function DashboardScreen() {
   const myEmpId = myRealEmp?.id || currentUser?.id;
   const myEmpName = myRealEmp?.name || currentUser?.name;
 
-  const [showReqModal, setShowReqModal] = useState(false);
-  const EMPTY_FORM = { type: 'Nghỉ phép', date: '', shiftCode: '', returnDate: '', returnShiftCode: '', reason: '', targetTeam: '', targetEmpId: '', targetEmpName: '' };
-  const [reqForm, setReqForm] = useState(EMPTY_FORM);
   const [showFullRoster, setShowFullRoster] = useState(false);
+  const [pendingFatigueCount, setPendingFatigueCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [myRosterSlots, setMyRosterSlots] = useState([]);
 
@@ -50,61 +49,12 @@ export default function DashboardScreen() {
       return () => clearInterval(timer);
   }, []);
 
-  const availableTeams = settings?.teams?.filter(t => t !== 'Trung tâm') || [];
-  const availableEmpsForSwap = useMemo(() => {
-      if (!reqForm.targetTeam) return [];
-      return employees.filter(e => e.team === reqForm.targetTeam && e.id !== myEmpId && !e.position?.toLowerCase().includes('lãnh đạo'));
-  }, [reqForm.targetTeam, employees, myEmpId]);
-
-  // ── GỬI ĐƠN: lưu vào backend để quản lý nhận được ─────────────────────
-  const handleSubmitRequest = async () => {
-      if (!reqForm.date || !reqForm.reason) { window.alert("Lỗi\nVui lòng nhập ngày và lý do."); return; }
-
-      const newReq = {
-          id: 'REQ_' + Date.now(),
-          requesterId: myEmpId,
-          requesterName: myEmpName,
-          requesterTeam: userTeam,
-          type: reqForm.type, date: reqForm.date, reason: reqForm.reason,
-          status: 'Pending', createdAt: new Date().toISOString()
-      };
-
-      if (reqForm.type === 'Đổi ca') {
-          if (!reqForm.targetEmpId) { window.alert("Lỗi\nVui lòng chọn nhân sự để đổi ca."); return; }
-          if (!reqForm.shiftCode) { window.alert("Lỗi\nVui lòng chọn ca cần đổi."); return; }
-          if (reqForm.returnDate && !reqForm.returnShiftCode) { window.alert("Lỗi\nVui lòng chọn ca trả."); return; }
-          newReq.targetEmpId = reqForm.targetEmpId;
-          newReq.targetEmpName = reqForm.targetEmpName;
-          newReq.targetTeam = reqForm.targetTeam;
-          newReq.shiftCode = reqForm.shiftCode;
-          if (reqForm.returnDate) {
-              newReq.returnDate = reqForm.returnDate;
-              newReq.returnShiftCode = reqForm.returnShiftCode;
-          }
-          if (isStaff) {
-              newReq.status = 'Pending_Leaders';
-              newReq.approvals = { [userTeam]: false };
-              if (reqForm.targetTeam !== userTeam) newReq.approvals[reqForm.targetTeam] = false;
-          } else if (isLeader) {
-              newReq.status = 'Pending_Admin';
-          }
-      }
-
-      try {
-          const saved = await DataService.createItem('requests', newReq);
-          if (setRequests) setRequests(prev => [saved || newReq, ...(prev || [])]);
-      } catch {
-          if (setRequests) setRequests(prev => [newReq, ...(prev || [])]);
-      }
-
-      setShowReqModal(false);
-      setReqForm(EMPTY_FORM);
-      window.alert("Thành công\n" + (newReq.status === 'Pending_Leaders' ? "Đơn đã được gửi tới các Kíp trưởng liên quan." : "Đơn đã gửi Quản trị viên."));
-      if (addNotification) {
-          const typeLabel = newReq.type === 'Đổi ca' ? `đổi ca với ${newReq.targetEmpName}${newReq.shiftCode ? ` ca ${newReq.shiftCode}` : ''}` : newReq.type.toLowerCase();
-          addNotification('Đơn đã gửi', `Đơn ${typeLabel} ngày ${newReq.date} đã được gửi chờ duyệt.`, 'info');
-      }
-  };
+  useEffect(() => {
+      if (!isChief) return;
+      api.get('/api/fatigue-reports/for-chief')
+        .then(({ data }) => setPendingFatigueCount(data.filter(r => r.status === 'submitted').length))
+        .catch(() => {});
+  }, [isChief]);
 
   // ── LEADER DUYỆT ĐỔI CA: cập nhật backend ────────────────────────────
   const handleLeaderApproveSwap = async (reqId) => {
@@ -397,136 +347,77 @@ export default function DashboardScreen() {
                   <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#e2e8f0' }}>
                       <div style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                           <span style={{ fontFamily: 'Times New Roman', fontSize: 16, fontWeight: 'bold', color: '#1e293b' }}><Icon name="file-text" size={16}/> Đơn từ cá nhân</span>
-                          <button type="button" onClick={() => setShowReqModal(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#2563eb', paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8, borderRadius: 8 }}>
-                              <Icon name="plus" size={14} color="#fff" />
-                              <span style={{ color: '#fff', fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold' }}>Tạo đơn</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                              <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'exchange')}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 7, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+                                  <Icon name="repeat" size={13} color="#2563eb" />
+                                  Đổi ca
+                              </button>
+                              <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'exchange')}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 7, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+                                  <Icon name="calendar-off" size={13} color="#16a34a" />
+                                  Nghỉ phép
+                              </button>
+                          </div>
                       </div>
                       
                       {myRequests.length === 0 ? (
                           <span style={{ fontFamily: 'Times New Roman', fontStyle: 'italic', color: '#94a3b8', textAlign: 'center', paddingTop: 20 , paddingBottom: 20 ,}}>Bạn chưa có đơn từ nào.</span>
                       ) : (
-                          myRequests.map(req => (
-                              <div key={req.id} style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderColor: '#f1f5f9' }}>
-                                  <div style={{ flex: 1 }}>
-                                      <span style={{ fontFamily: 'Times New Roman', fontSize: 15, fontWeight: 'bold', color: '#1e293b' }}>
-                                          {req.type} {req.type === 'Đổi ca' && <span style={{color: '#2563eb'}}>↔ {req.targetEmpName}</span>} — {req.date}{req.shiftCode ? ` [${req.shiftCode}]` : ''}
-                                      </span>
-                                      {req.returnDate && <span style={{ fontFamily: 'Times New Roman', fontSize: 12, color: '#7c3aed', marginTop: 2 }}>Trả ca: {req.returnDate}{req.returnShiftCode ? ` [${req.returnShiftCode}]` : ''}</span>}
-                                      <span style={{ fontFamily: 'Times New Roman', fontSize: 13, color: '#64748b', marginTop: 2 }}>{req.reason}</span>
-                                  </div>
-                                  <div style={{ paddingLeft: 10, paddingRight: 10, paddingTop: 6, paddingBottom: 6, borderRadius: 12, borderWidth: 1, backgroundColor: req.status.includes('Pending') ? '#fffbeb' : '#f0fdf4', borderColor: req.status.includes('Pending') ? '#fde68a' : '#bbf7d0' }}>
-                                      {req.type === 'Đổi ca' ? renderSwapStatus(req) : <span style={{ ...styles.statusText, color: req.status === 'Pending' ? '#d97706' : '#16a34a' }}>{req.status === 'Pending' ? 'Đang chờ' : 'Đã duyệt'}</span>}
-                                  </div>
-                              </div>
-                          ))
-                      )}
-                  </div>
-                  <div style={{ height: 40 }}/>
-              </div>
-
-              <Modal visible={showReqModal} maxWidth="480px">
-                  <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <span style={{ fontFamily: 'Times New Roman', fontSize: 16, fontWeight: 'bold', color: '#1e293b' }}>Tạo Đơn Yêu Cầu</span>
-                      <button type="button" onClick={() => setShowReqModal(false)}><Icon name="x" size={20} color="#64748b"/></button>
-                  </div>
-                  <div style={{ padding: 20 }}>
-                      <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#475569', marginBottom: 8 }}>Loại đơn</span>
-                      <div style={{ display: 'flex', flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-                          <button type="button" style={{ flex: 1, padding: '10px 0', display: 'flex', justifyContent: 'center', borderRadius: 8, border: `1.5px solid ${reqForm.type === 'Nghỉ phép' ? '#2563eb' : '#e2e8f0'}`, backgroundColor: reqForm.type === 'Nghỉ phép' ? '#eff6ff' : '#f8fafc', cursor: 'pointer' }} onClick={() => setReqForm({...reqForm, type: 'Nghỉ phép'})}>
-                              <span style={{ fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: reqForm.type === 'Nghỉ phép' ? '#2563eb' : '#64748b' }}>Nghỉ phép</span>
-                          </button>
-                          <button type="button" style={{ flex: 1, padding: '10px 0', display: 'flex', justifyContent: 'center', borderRadius: 8, border: `1.5px solid ${reqForm.type === 'Đổi ca' ? '#2563eb' : '#e2e8f0'}`, backgroundColor: reqForm.type === 'Đổi ca' ? '#eff6ff' : '#f8fafc', cursor: 'pointer' }} onClick={() => setReqForm({...reqForm, type: 'Đổi ca'})}>
-                              <span style={{ fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: reqForm.type === 'Đổi ca' ? '#2563eb' : '#64748b' }}>Đổi ca</span>
-                          </button>
-                      </div>
-
-                      {reqForm.type === 'Đổi ca' && (
-                          <div style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 8, marginBottom: 16, border: '1px solid #e2e8f0' }}>
-                              <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#2563eb', marginBottom: 10 }}>1. Chọn Kíp Đích</span>
-                              <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                                  {availableTeams.map(t => (
-                                      <button type="button" key={t} style={{ padding: '5px 14px', borderRadius: 20, border: `1.5px solid ${reqForm.targetTeam === t ? '#2563eb' : '#cbd5e1'}`, backgroundColor: reqForm.targetTeam === t ? '#2563eb' : '#fff', cursor: 'pointer' }} onClick={() => setReqForm({...reqForm, targetTeam: t, targetEmpId: '', targetEmpName: ''})}>
-                                          <span style={{ fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: reqForm.targetTeam === t ? '#fff' : '#475569' }}>{t}</span>
-                                      </button>
-                                  ))}
-                              </div>
-                              {reqForm.targetTeam && (
-                                  <>
-                                      <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#2563eb', marginBottom: 10 }}>2. Chọn Nhân Sự</span>
-                                      {availableEmpsForSwap.length > 0 ? (
-                                          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                                              {availableEmpsForSwap.map(emp => (
-                                                  <button type="button" key={emp.id} style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${reqForm.targetEmpId === emp.id ? '#2563eb' : '#cbd5e1'}`, backgroundColor: reqForm.targetEmpId === emp.id ? '#eff6ff' : '#fff', cursor: 'pointer' }} onClick={() => setReqForm({...reqForm, targetEmpId: emp.id, targetEmpName: emp.name})}>
-                                                      <span style={{ fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: reqForm.targetEmpId === emp.id ? '#2563eb' : '#334155' }}>{emp.name}</span>
-                                                  </button>
-                                              ))}
-                                          </div>
-                                      ) : (
-                                          <span style={{ fontFamily: 'Times New Roman', fontSize: 12, fontStyle: 'italic', color: '#ef4444' }}>Không có nhân sự nào phù hợp.</span>
-                                      )}
-                                  </>
-                              )}
-                          </div>
-                      )}
-
-                      {reqForm.type === 'Đổi ca' && (
-                          <div style={{ backgroundColor: '#f0f9ff', padding: 14, borderRadius: 8, marginBottom: 16, border: '1px solid #bae6fd' }}>
-                              <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#0369a1', marginBottom: 10 }}>3. Ca cần đổi *</span>
-                              <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                                  {(settings?.shiftTypes || []).map(shift => (
-                                      <button type="button" key={shift.code}
-                                          style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${reqForm.shiftCode === shift.code ? '#0369a1' : '#bae6fd'}`, backgroundColor: reqForm.shiftCode === shift.code ? '#0369a1' : '#fff', cursor: 'pointer' }}
-                                          onClick={() => setReqForm({...reqForm, shiftCode: shift.code})}>
-                                          <span style={{ fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: reqForm.shiftCode === shift.code ? '#fff' : '#0369a1' }}>
-                                              {shift.label} ({shift.startTime}–{shift.endTime})
+                          <>
+                              {myRequests.slice(0, 3).map(req => (
+                                  <div key={req.id} style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderColor: '#f1f5f9' }}>
+                                      <div style={{ flex: 1 }}>
+                                          <span style={{ fontFamily: 'Times New Roman', fontSize: 15, fontWeight: 'bold', color: '#1e293b' }}>
+                                              {req.type} {req.type === 'Đổi ca' && <span style={{color: '#2563eb'}}>↔ {req.targetEmpName}</span>} — {req.date}{req.shiftCode ? ` [${req.shiftCode}]` : ''}
                                           </span>
-                                      </button>
-                                  ))}
-                              </div>
-                          </div>
-                      )}
-
-                      <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#475569', marginBottom: 8 }}>Ngày đổi ca *</span>
-                      <input type="date" style={{ display: 'block', width: '100%', boxSizing: 'border-box', fontFamily: 'Times New Roman', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginBottom: 14 }} value={reqForm.date} onChange={(e) => setReqForm({...reqForm, date: e.target.value})} />
-
-                      {reqForm.type === 'Đổi ca' && (
-                          <div style={{ backgroundColor: '#fafafa', padding: 14, borderRadius: 8, marginBottom: 14, border: '1px solid #e2e8f0' }}>
-                              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: reqForm.returnDate ? 12 : 0 }}>
-                                  <span style={{ fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#475569' }}>Ngày trả ca (tùy chọn)</span>
-                                  <button type="button"
-                                      style={{ padding: '4px 12px', borderRadius: 6, border: `1.5px solid ${reqForm.returnDate ? '#dc2626' : '#2563eb'}`, backgroundColor: reqForm.returnDate ? '#fef2f2' : '#eff6ff', cursor: 'pointer' }}
-                                      onClick={() => setReqForm({...reqForm, returnDate: reqForm.returnDate ? '' : new Date().toISOString().slice(0,10), returnShiftCode: ''})}>
-                                      <span style={{ fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: reqForm.returnDate ? '#dc2626' : '#2563eb' }}>{reqForm.returnDate ? 'Xóa trả ca' : '+ Thêm trả ca'}</span>
-                                  </button>
-                              </div>
-                              {reqForm.returnDate && (
-                                  <>
-                                      <input type="date" style={{ display: 'block', width: '100%', boxSizing: 'border-box', fontFamily: 'Times New Roman', backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginBottom: 10 }} value={reqForm.returnDate} onChange={(e) => setReqForm({...reqForm, returnDate: e.target.value})} />
-                                      <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: '#475569', marginBottom: 8 }}>Ca trả *</span>
-                                      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                                          {(settings?.shiftTypes || []).map(shift => (
-                                              <button type="button" key={shift.code}
-                                                  style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${reqForm.returnShiftCode === shift.code ? '#7c3aed' : '#e2e8f0'}`, backgroundColor: reqForm.returnShiftCode === shift.code ? '#7c3aed' : '#fff', cursor: 'pointer' }}
-                                                  onClick={() => setReqForm({...reqForm, returnShiftCode: shift.code})}>
-                                                  <span style={{ fontFamily: 'Times New Roman', fontSize: 12, fontWeight: 'bold', color: reqForm.returnShiftCode === shift.code ? '#fff' : '#7c3aed' }}>
-                                                      {shift.label} ({shift.startTime}–{shift.endTime})
-                                                  </span>
-                                              </button>
-                                          ))}
+                                          {req.returnDate && <span style={{ fontFamily: 'Times New Roman', fontSize: 12, color: '#7c3aed', marginTop: 2 }}>Trả ca: {req.returnDate}{req.returnShiftCode ? ` [${req.returnShiftCode}]` : ''}</span>}
+                                          <span style={{ fontFamily: 'Times New Roman', fontSize: 13, color: '#64748b', marginTop: 2 }}>{req.reason}</span>
                                       </div>
-                                  </>
+                                      <div style={{ paddingLeft: 10, paddingRight: 10, paddingTop: 6, paddingBottom: 6, borderRadius: 12, borderWidth: 1, backgroundColor: req.status.includes('Pending') ? '#fffbeb' : '#f0fdf4', borderColor: req.status.includes('Pending') ? '#fde68a' : '#bbf7d0' }}>
+                                          {req.type === 'Đổi ca' ? renderSwapStatus(req) : <span style={{ ...styles.statusText, color: req.status === 'Pending' ? '#d97706' : '#16a34a' }}>{req.status === 'Pending' ? 'Đang chờ' : 'Đã duyệt'}</span>}
+                                      </div>
+                                  </div>
+                              ))}
+                              {myRequests.length > 3 && (
+                                  <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'exchange')}
+                                      style={{ display: 'block', width: '100%', padding: '10px 0 8px', fontSize: 12, color: '#2563eb', fontWeight: 600, backgroundColor: 'transparent', border: 'none', cursor: 'pointer', borderTop: '1px solid #f1f5f9', marginTop: 4 }}>
+                                      Xem tất cả đơn từ →
+                                  </button>
                               )}
+                          </>
+                      )}
+                  </div>
+
+                  {/* Shortcut: Báo cáo mệt mỏi */}
+                  <div style={{ backgroundColor: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Icon name="alert-triangle" size={18} color="#ef4444" />
+                          </div>
+                          <div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>Báo cáo mệt mỏi</div>
+                              <div style={{ fontSize: 11, color: '#64748b' }}>Just Culture — ẩn danh, không kỷ luật</div>
+                          </div>
+                      </div>
+                      {isChief && pendingFatigueCount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, marginBottom: 10, fontSize: 12, color: '#92400e' }}>
+                              <Icon name="clock" size={13} color="#d97706" />
+                              <span><strong>{pendingFatigueCount}</strong> báo cáo đang chờ xác nhận</span>
                           </div>
                       )}
-
-                      <span style={{ display: 'block', fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#475569', marginBottom: 8 }}>Lý do chi tiết *</span>
-                      <textarea style={{ display: 'block', width: '100%', boxSizing: 'border-box', fontFamily: 'Times New Roman', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 14, height: 88, resize: 'vertical' }} placeholder="Nhập lý do..." value={reqForm.reason} onChange={(e) => setReqForm({...reqForm, reason: e.target.value})} />
-                      <button type="button" style={{ display: 'flex', width: '100%', justifyContent: 'center', backgroundColor: '#2563eb', padding: '13px 0', borderRadius: 8, marginTop: 18, cursor: 'pointer', border: 'none' }} onClick={handleSubmitRequest}>
-                          <span style={{ color: '#fff', fontFamily: 'Times New Roman', fontSize: 15, fontWeight: 'bold' }}>Gửi Đơn Xin Duyệt</span>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                          Cảm thấy mệt mỏi hoặc không đủ điều kiện trực an toàn? Gửi báo cáo ngay — báo cáo được bảo mật và không ảnh hưởng đến kỷ luật.
+                      </p>
+                      <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'fatigue')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '10px 0', backgroundColor: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                          <Icon name="alert-triangle" size={14} color="#dc2626" />
+                          Gửi báo cáo mệt mỏi ngay
                       </button>
                   </div>
-              </Modal>
+
+                  <div style={{ height: 40 }}/>
+              </div>
           </div>
       );
   }
