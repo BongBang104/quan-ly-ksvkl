@@ -1539,6 +1539,10 @@ function ShiftExchangeTab({ currentUser }) {
   const [rejectModalId, setRejectModalId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [agreeing, setAgreeing] = useState({});
+  const [leaveStartDate, setLeaveStartDate] = useState('');
+  const [leaveEndDate, setLeaveEndDate] = useState('');
+  const [leaveReason, setLeaveReason] = useState('');
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
 
   // Xác định biểu mẫu dựa trên position/role của currentUser
   const pos = (currentUser?.position || '').toLowerCase();
@@ -1555,6 +1559,41 @@ function ShiftExchangeTab({ currentUser }) {
   }, []);
 
   useEffect(() => { loadMine(); }, [loadMine]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.subTab === 'exchange' && e.detail?.formType === 'LEAVE') {
+        setType('LEAVE'); setView('create');
+      }
+    };
+    window.addEventListener('atc:navigate-subtab', handler);
+    return () => window.removeEventListener('atc:navigate-subtab', handler);
+  }, []);
+
+  const submitLeave = async () => {
+    if (!leaveStartDate || !leaveReason) {
+      window.alert('Vui lòng nhập ngày bắt đầu và lý do nghỉ phép.'); return;
+    }
+    setLeaveSubmitting(true);
+    try {
+      await api.post('/api/requests', {
+        id: `REQ_${Date.now()}`,
+        type: 'Nghỉ phép',
+        requesterId: currentUser?.id,
+        requesterName: currentUser?.name,
+        date: leaveStartDate,
+        returnDate: leaveEndDate || undefined,
+        reason: leaveReason,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+      });
+      window.alert('Đã gửi đơn nghỉ phép. Quản lý sẽ xem xét sớm.');
+      setView('list'); setLeaveStartDate(''); setLeaveEndDate(''); setLeaveReason('');
+      loadMine();
+    } catch (e) {
+      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+    } finally { setLeaveSubmitting(false); }
+  };
 
   const runPrecheck = async () => {
     if (!appShiftDate || !counterpartyId || !counterpartyName) {
@@ -1791,64 +1830,94 @@ function ShiftExchangeTab({ currentUser }) {
             <select style={T.inp} value={type} onChange={e => setType(e.target.value)}>
               <option value="EXCHANGE">Đổi ca (có hoàn trả)</option>
               <option value="COVER">Trực thay (không hoàn trả)</option>
+              <option value="LEAVE">Nghỉ phép</option>
             </select>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={T.lbl}>Ca của tôi cần đổi — Ngày</label>
-              <input type="date" style={T.inp} value={appShiftDate} onChange={e => setAppShiftDate(e.target.value)} />
-            </div>
-            <div>
-              <label style={T.lbl}>Ca</label>
-              <select style={T.inp} value={appShiftCode} onChange={e => setAppShiftCode(e.target.value)}>
-                <option value="S">Ca S (ngày)</option>
-                <option value="D">Ca D (đêm)</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={T.lbl}>Người nhận — ID/Mã ICAO</label>
-              <input type="text" style={T.inp} value={counterpartyId}
-                     onChange={e => setCounterpartyId(e.target.value)} placeholder="Employee ID" />
-            </div>
-            <div>
-              <label style={T.lbl}>Tên người nhận</label>
-              <input type="text" style={T.inp} value={counterpartyName}
-                     onChange={e => setCounterpartyName(e.target.value)} placeholder="Họ và tên" />
-            </div>
-          </div>
-          {type === 'EXCHANGE' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={T.lbl}>Ca người nhận sẽ hoàn trả — Ngày</label>
-                <input type="date" style={T.inp} value={cpShiftDate} onChange={e => setCpShiftDate(e.target.value)} />
+
+          {type === 'LEAVE' ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={T.lbl}>Ngày bắt đầu nghỉ *</label>
+                  <input type="date" style={T.inp} value={leaveStartDate} onChange={e => setLeaveStartDate(e.target.value)} />
+                </div>
+                <div>
+                  <label style={T.lbl}>Ngày kết thúc nghỉ (nếu nhiều ngày)</label>
+                  <input type="date" style={T.inp} value={leaveEndDate} onChange={e => setLeaveEndDate(e.target.value)} />
+                </div>
               </div>
-              <div>
-                <label style={T.lbl}>Ca hoàn trả</label>
-                <select style={T.inp} value={cpShiftCode} onChange={e => setCpShiftCode(e.target.value)}>
-                  <option value="S">Ca S</option>
-                  <option value="D">Ca D</option>
-                </select>
+              <div style={{ marginBottom: 16 }}>
+                <label style={T.lbl}>Lý do nghỉ phép *</label>
+                <textarea rows={4} style={{ ...T.inp, width: '100%', resize: 'vertical', marginTop: 6 }}
+                          placeholder="Nhập lý do nghỉ phép..."
+                          value={leaveReason} onChange={e => setLeaveReason(e.target.value)} />
               </div>
-            </div>
+              <button type="button" onClick={submitLeave} disabled={leaveSubmitting}
+                      style={{ ...T.btn, opacity: leaveSubmitting ? 0.5 : 1 }}>
+                {leaveSubmitting ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={15} color="#fff" />}
+                <span style={{ marginLeft: 8 }}>Gửi đơn nghỉ phép</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={T.lbl}>Ca của tôi cần đổi — Ngày</label>
+                  <input type="date" style={T.inp} value={appShiftDate} onChange={e => setAppShiftDate(e.target.value)} />
+                </div>
+                <div>
+                  <label style={T.lbl}>Ca</label>
+                  <select style={T.inp} value={appShiftCode} onChange={e => setAppShiftCode(e.target.value)}>
+                    <option value="S">Ca S (ngày)</option>
+                    <option value="D">Ca D (đêm)</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={T.lbl}>Người nhận — ID/Mã ICAO</label>
+                  <input type="text" style={T.inp} value={counterpartyId}
+                         onChange={e => setCounterpartyId(e.target.value)} placeholder="Employee ID" />
+                </div>
+                <div>
+                  <label style={T.lbl}>Tên người nhận</label>
+                  <input type="text" style={T.inp} value={counterpartyName}
+                         onChange={e => setCounterpartyName(e.target.value)} placeholder="Họ và tên" />
+                </div>
+              </div>
+              {type === 'EXCHANGE' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={T.lbl}>Ca người nhận sẽ hoàn trả — Ngày</label>
+                    <input type="date" style={T.inp} value={cpShiftDate} onChange={e => setCpShiftDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={T.lbl}>Ca hoàn trả</label>
+                    <select style={T.inp} value={cpShiftCode} onChange={e => setCpShiftCode(e.target.value)}>
+                      <option value="S">Ca S</option>
+                      <option value="D">Ca D</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, cursor: 'pointer' }}>
+                <input type="checkbox" checked={committed} onChange={e => setCommitted(e.target.checked)} style={{ marginTop: 3 }} />
+                <span style={{ fontSize: 13 }}>Cam kết việc đổi ca/trực thay đã đảm bảo đúng quy định về thời giờ làm việc, nghỉ ngơi (QĐ 2701 Điều 8.1.c).</span>
+              </label>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                <button type="button" onClick={runPrecheck} disabled={prechecking}
+                        style={{ ...T.btn, backgroundColor: '#2563eb', opacity: prechecking ? 0.5 : 1 }}>
+                  {prechecking ? 'Đang kiểm tra…' : '🔍 Kiểm tra điều kiện'}
+                </button>
+                <button onClick={submit} disabled={submitting || !committed}
+                        style={{ ...T.btn, opacity: (submitting || !committed) ? 0.5 : 1 }}>
+                  {submitting ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={15} color="#fff" />}
+                  <span style={{ marginLeft: 8 }}>Gửi yêu cầu</span>
+                </button>
+              </div>
+              {precheckResult && <PrecheckPanel result={precheckResult} />}
+            </>
           )}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, cursor: 'pointer' }}>
-            <input type="checkbox" checked={committed} onChange={e => setCommitted(e.target.checked)} style={{ marginTop: 3 }} />
-            <span style={{ fontSize: 13 }}>Cam kết việc đổi ca/trực thay đã đảm bảo đúng quy định về thời giờ làm việc, nghỉ ngơi (QĐ 2701 Điều 8.1.c).</span>
-          </label>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-            <button type="button" onClick={runPrecheck} disabled={prechecking}
-                    style={{ ...T.btn, backgroundColor: '#2563eb', opacity: prechecking ? 0.5 : 1 }}>
-              {prechecking ? 'Đang kiểm tra…' : '🔍 Kiểm tra điều kiện'}
-            </button>
-            <button onClick={submit} disabled={submitting || !committed}
-                    style={{ ...T.btn, opacity: (submitting || !committed) ? 0.5 : 1 }}>
-              {submitting ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={15} color="#fff" />}
-              <span style={{ marginLeft: 8 }}>Gửi yêu cầu</span>
-            </button>
-          </div>
-          {precheckResult && <PrecheckPanel result={precheckResult} />}
         </div>
       )}
 

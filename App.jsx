@@ -261,11 +261,11 @@ function MainApp() {
     };
     switch (activeTab) {
       case 'DASHBOARD':    return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} smsReports={[]}
-        onNavigateTo={(screen, subTab) => {
+        onNavigateTo={(screen, subTab, extra) => {
           setActiveTab(screen);
           if (subTab) {
             const groupMap = { exchange:'forms', fatigue:'forms', briefing:'forms', handover:'forms', checklist:'forms', compliance:'analysis', fairness:'analysis', tasks_feed:'operations' };
-            setTimeout(() => window.dispatchEvent(new CustomEvent('atc:navigate-subtab', { detail: { subTab, group: groupMap[subTab] || null } })), 150);
+            setTimeout(() => window.dispatchEvent(new CustomEvent('atc:navigate-subtab', { detail: { subTab, group: groupMap[subTab] || null, ...extra } })), 150);
           }
         }}
       />;

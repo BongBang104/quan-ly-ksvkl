@@ -353,7 +353,7 @@ export default function DashboardScreen({ onNavigateTo } = {}) {
                                   <Icon name="repeat" size={13} color="#2563eb" />
                                   Đổi ca
                               </button>
-                              <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'exchange')}
+                              <button type="button" onClick={() => onNavigateTo?.('ANALYTICS', 'exchange', { formType: 'LEAVE' })}
                                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 7, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
                                   <Icon name="calendar-off" size={13} color="#16a34a" />
                                   Nghỉ phép
