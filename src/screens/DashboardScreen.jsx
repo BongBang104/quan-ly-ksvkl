@@ -14,7 +14,7 @@ import api from '../services/ApiService';
 const D = {
   page: {
     width: '100%',
-    minHeight: '100%',
+    flex: 1,
     backgroundColor: '#f4f6f9',
     padding: '20px 20px 40px',
     fontFamily: "'Inter', 'system-ui', sans-serif",
@@ -252,7 +252,7 @@ function DutyRosterWidget({ members, team }) {
         <div style={D.cardTitle}><Icon name="activity" size={14} color="#16a34a" />Đang trực — Kíp {team}</div>
         <span style={D.badge('#f0fdf4', '#16a34a', '#bbf7d0')}>{members.length} người</span>
       </div>
-      <div style={{ ...D.cardBody, padding: '6px 18px' }}>
+      <div style={{ ...D.cardBody, padding: '6px 18px', maxHeight: 340, overflowY: 'auto' }}>
         {members.length === 0 ? (
           <div style={D.empty}><Icon name="moon" size={24} color="#cbd5e1" />Không có ca trực trong ca này</div>
         ) : members.map(emp => (
