@@ -7,7 +7,8 @@ const DEFAULT_TEAM = 'ALL';
 
 // Fields stored directly on the entity
 const ENTITY_FIELDS = new Set(['id', 'team', 'title', 'description', 'priority', 'status',
-  'assignedTo', 'dueDate', 'createdBy', 'targetEmpIds', 'comments', 'acknowledgments']);
+  'assignedTo', 'dueDate', 'createdBy', 'targetEmpIds', 'comments', 'acknowledgments',
+  'visibility']);
 
 @Injectable()
 export class TasksService {
@@ -21,10 +22,23 @@ export class TasksService {
     return { list: list.map(t => this.toFrontend(t)) };
   }
 
-  async findByTeam(team?: string): Promise<{ list: any[] }> {
-    if (!team) return this.findAll();
-    const list = await this.repo.find({ where: { team }, order: { createdAt: 'DESC' } });
-    return { list: list.map(t => this.toFrontend(t)) };
+  async findByTeam(team?: string, requesterId?: string, requesterRole?: string): Promise<{ list: any[] }> {
+    const all = await this.repo.find({ order: { createdAt: 'DESC' } });
+    const visible = all.filter(task => {
+      const v = (task as any).visibility ?? 'team';
+      if (v === 'unit') return true;
+      if (v === 'private') {
+        return task.createdBy === requesterId ||
+               (task.targetEmpIds || []).includes(requesterId);
+      }
+      // v === 'team' (default): cùng team với tác giả hoặc là người được chỉ định
+      if (!team) return true;
+      return task.team === team ||
+             task.team === 'ALL' ||
+             task.createdBy === requesterId ||
+             (task.targetEmpIds || []).includes(requesterId);
+    });
+    return { list: visible.map(t => this.toFrontend(t)) };
   }
 
   async replaceByTeam(team: string, list: any[]): Promise<{ list: any[] }> {
@@ -60,6 +74,7 @@ export class TasksService {
       assignedTo:     raw.assignedTo,
       dueDate:        raw.dueDate ?? raw.deadlineDate ?? raw.date,
       createdBy:      raw.createdBy ?? raw.authorId,
+      visibility:     raw.visibility ?? 'team',
       targetEmpIds:   raw.targetEmpIds ?? [],
       comments:       raw.comments ?? [],
       acknowledgments: raw.acknowledgments ?? [],
@@ -83,6 +98,7 @@ export class TasksService {
       deadlineDate:   extra.deadlineDate ?? row.dueDate,
       deadlineTime:   extra.deadlineTime,
       createdBy:      row.createdBy,
+      visibility:     (row as any).visibility ?? 'team',
       authorId:       extra.authorId ?? row.createdBy,
       authorName:     extra.authorName,
       authorRole:     extra.authorRole,

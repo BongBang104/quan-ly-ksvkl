@@ -4,10 +4,14 @@ import { SuperAdminGuard } from '../auth/superadmin.guard';
 import { RolesGuard }      from '../auth/roles.guard';
 import { Roles }           from '../auth/roles.decorator';
 import { EmployeesService } from './employees.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Controller('api/employees')
 export class EmployeesController {
-  constructor(private readonly svc: EmployeesService) {}
+  constructor(
+    private readonly svc: EmployeesService,
+    private readonly notify: NotificationsGateway,
+  ) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -16,28 +20,36 @@ export class EmployeesController {
   @Put()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  replaceAll(@Body() body: { list: any[] }) {
-    return this.svc.replaceAll(body.list);
+  async replaceAll(@Body() body: { list: any[] }) {
+    const result = await this.svc.replaceAll(body.list);
+    this.notify.broadcastNotification('employees:updated', {});
+    return result;
   }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  create(@Body() body: any) {
-    return this.svc.upsertOne(body, true);  // isNew=true → backend sinh password
+  async create(@Body() body: any) {
+    const result = await this.svc.upsertOne(body, true);
+    this.notify.broadcastNotification('employees:updated', {});
+    return result;
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.svc.upsertOne({ ...body, id });  // isNew=false (default) → giữ password
+  async update(@Param('id') id: string, @Body() body: any) {
+    const result = await this.svc.upsertOne({ ...body, id });
+    this.notify.broadcastNotification('employees:updated', {});
+    return result;
   }
 
   @Patch(':id/approve')
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
-  setApproved(@Param('id') id: string, @Body() body: { isApproved: boolean }) {
-    return this.svc.setApproved(id, body.isApproved);
+  async setApproved(@Param('id') id: string, @Body() body: { isApproved: boolean }) {
+    const result = await this.svc.setApproved(id, body.isApproved);
+    this.notify.broadcastNotification('employees:updated', {});
+    return result;
   }
 
   @Patch(':id/reset-password')
@@ -50,5 +62,8 @@ export class EmployeesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  remove(@Param('id') id: string) { return this.svc.remove(id); }
+  async remove(@Param('id') id: string) {
+    await this.svc.remove(id);
+    this.notify.broadcastNotification('employees:updated', {});
+  }
 }

@@ -267,7 +267,7 @@ function MainApp() {
       case 'STATS':        return <StatsScreen        {...p} scheduleData={scheduleData} />;
       case 'ANALYTICS':    return <AnalyticsScreen    {...p} />;
       case 'ACCOUNTS':     return <AccountManagerScreen {...p} />;
-      case 'SETTINGS':     return <SettingsScreen settings={settings} setSettings={setSettings} currentUser={currentUser} />;
+      case 'SETTINGS':     return <SettingsScreen {...p} />;
       case 'APPROVE':      return <SuperAdminScreen />;
       case 'AUDIT_LOG':    return <AuditLogScreen />;
       default:             return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;

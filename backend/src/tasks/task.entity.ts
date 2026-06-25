@@ -11,6 +11,7 @@ export class Task {
   @Column({ nullable: true }) assignedTo: string;
   @Column({ nullable: true }) dueDate: string;
   @Column({ nullable: true }) createdBy: string;
+  @Column({ nullable: true, default: 'team' }) visibility: string;
   @Column({ type: 'jsonb', default: '[]' }) targetEmpIds: string[];
   @Column({ type: 'jsonb', default: '[]' }) comments: Record<string, any>[];
   @Column({ type: 'jsonb', default: '[]' }) acknowledgments: Record<string, any>[];

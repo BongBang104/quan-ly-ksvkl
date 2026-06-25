@@ -278,3 +278,10 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions("userId");
+
+-- ─── Tasks: thêm cột visibility (Fix-07) ────────────────────────────────────
+-- 'team' = chỉ kíp tác giả; 'unit' = toàn đơn vị; 'private' = chỉ targetEmpIds
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS visibility VARCHAR DEFAULT 'team';
+
+-- ─── Thêm extraData cho tasks nếu chưa có ────────────────────────────────────
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS "extraData" JSONB;

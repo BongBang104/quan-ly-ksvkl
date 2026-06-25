@@ -65,18 +65,26 @@ export const AppProvider = ({ children }) => {
     if (res?.list) setRequests(res.list);
   }, []);
 
-  const reloadSchedule = useCallback(async () => {
+  const reloadSchedule = useCallback(async (targetMonthKey) => {
     const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthKey = targetMonthKey
+      || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     try {
       const { data } = await api.get(`/api/schedules/${monthKey}`);
       const payload = data?.data ?? {};
-      if (payload.scheduleData) setScheduleData(payload.scheduleData);
+      if (payload.scheduleData)     setScheduleData(payload.scheduleData);
       if (payload.extraAssignments) setExtraAssignments(payload.extraAssignments);
       if (payload.isPublished !== undefined) setIsPublished(payload.isPublished);
       return payload;
     } catch {}
     return {};
+  }, []);
+
+  const reloadEmployees = useCallback(async () => {
+    try {
+      const res = await DataService.fetchData(null, null, 'employees');
+      if (res?.list) setEmployees(res.list.filter(e => e.role !== 'superadmin'));
+    } catch {}
   }, []);
 
   // ── Load public settings on startup ───────────────────────────────────
@@ -266,12 +274,44 @@ export const AppProvider = ({ children }) => {
         : currentUser.role !== 'ADMIN' && currentUser.role !== 'superadmin';
       if (isTarget) {
         addNotification(
-          'Thông báo được cập nhật',
-          `Bài đăng "${payload.title || ''}" vừa được cập nhật nội dung.`,
+          payload.hasNewComment ? 'Bình luận mới' : 'Thông báo được cập nhật',
+          `Bài đăng "${payload.title || ''}" ${payload.hasNewComment ? 'có bình luận mới.' : 'vừa được cập nhật nội dung.'}`,
           'info'
         );
       }
     });
+
+    socket.on('task:deleted', (payload) => {
+      if (payload?.createdBy === currentUser.id || currentUser.role === 'ADMIN' || currentUser.role === 'superadmin') {
+        addNotification('Nhiệm vụ đã xoá', `Nhiệm vụ "${payload?.title || ''}" đã được xoá.`, 'info');
+      }
+    });
+
+    socket.on('tasks:updated', () => {
+      // TasksFeedTab đang tự polling — handler rỗng để tương lai mở rộng nếu cần
+    });
+
+    socket.on('exchange:new', (payload) => {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'CHIEF') {
+        addNotification(
+          'Yêu cầu đổi ca mới',
+          `${payload?.requesterName || 'Nhân sự'} gửi yêu cầu đổi ca ngày ${payload?.date || ''}.`,
+          'info'
+        );
+      }
+    });
+
+    socket.on('fatigue:new', (payload) => {
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin' || currentUser.role === 'CHIEF') {
+        addNotification(
+          'Báo cáo mệt mỏi mới',
+          `${payload?.reporterName || 'Nhân sự'} vừa gửi báo cáo mệt mỏi.`,
+          'warning'
+        );
+      }
+    });
+
+    socket.on('employees:updated', () => { reloadEmployees(); });
 
     socket.on('roster:published', (payload) => {
       const myAssignment = payload?.empAssignments?.[currentUser.id];
@@ -293,7 +333,7 @@ export const AppProvider = ({ children }) => {
     });
 
     socket.on('schedule:published', async (payload) => {
-      const newData = await reloadSchedule();
+      const newData = await reloadSchedule(payload.monthKey);
       if (currentUser.role === 'ADMIN' || currentUser.role === 'superadmin') return;
 
       addNotification(
@@ -358,7 +398,7 @@ export const AppProvider = ({ children }) => {
       isPublished, setIsPublished,
       addNotification,
       notifications, setNotifications, isNotifOpen, setIsNotifOpen,
-      reloadActivities, reloadRequests, reloadSchedule,
+      reloadActivities, reloadRequests, reloadSchedule, reloadEmployees,
     }}>
       {children}
     </AppContext.Provider>

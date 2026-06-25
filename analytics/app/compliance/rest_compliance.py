@@ -212,22 +212,51 @@ class ShiftKind(Enum):
     NIGHT  = "NIGHT"   # phần lớn thời gian trong 22h00-06h00 (QĐ 2288 Điều 15.1.a)
 
 
-def classify_shift_kind(start: datetime, end: datetime, cfg: RestRuleConfig) -> ShiftKind:
-    """Phân loại ca dựa trên khung giờ và cấu hình. QĐ 2288 Điều 15.
+def _night_overlap_minutes(start: datetime, end: datetime,
+                           night_start_h: int, night_end_h: int) -> float:
+    """Tính số phút ca nằm trong cửa sổ đêm (22h-06h), xử lý cross-midnight."""
+    if end <= start:
+        return 0.0
+    total   = 0.0
+    current = start
+    while current < end:
+        day_start = current.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        # 22h → 00h (đêm phía sau)
+        for ns, ne in [
+            (day_start + timedelta(hours=night_start_h), day_end),
+            (day_start,                                   day_start + timedelta(hours=night_end_h)),
+        ]:
+            ov_s = max(current, ns)
+            ov_e = min(end, ne)
+            if ov_e > ov_s:
+                total += (ov_e - ov_s).total_seconds() / 60.0
+        current = day_end
+    return total
 
-    Kiểm tra EARLY trước NIGHT để xử lý overlap 04h-06h:
-    ca bắt đầu 04h-07h là EARLY, không phải NIGHT.
+
+def classify_shift_kind(start: datetime, end: datetime, cfg: RestRuleConfig) -> ShiftKind:
+    """Phân loại ca dựa trên tỉ lệ thời gian trong cửa sổ đêm/sáng.
+    QĐ 2288 Điều 15: ca đêm = phần lớn (>50%) thời gian trong 22h00-06h00.
+    Thứ tự ưu tiên: EARLY > NIGHT > LATE > NORMAL.
     """
     # EARLY: bắt đầu 04h00-07h00 — ưu tiên kiểm tra trước (QĐ 2288 Điều 15.2.a)
     if cfg.early_shift_window_start_hour <= start.hour < cfg.early_shift_window_end_hour:
         return ShiftKind.EARLY
-    # NIGHT: bắt đầu ≥ 22h hoặc < 04h (phần lớn thời gian trong 22h-06h)
-    if start.hour >= cfg.night_window_start_hour or start.hour < cfg.early_shift_window_start_hour:
+
+    # NIGHT: >50% thời gian trong 22h-06h (QĐ 2288 Điều 15.1.a)
+    total_minutes = max(1.0, (end - start).total_seconds() / 60.0)
+    night_minutes = _night_overlap_minutes(start, end,
+                                           cfg.night_window_start_hour,
+                                           cfg.night_window_end_hour)
+    if night_minutes / total_minutes > 0.5:
         return ShiftKind.NIGHT
-    # LATE: kết thúc sau 22h00
-    end_hour = end.hour if end.date() == start.date() else (end.hour + 24 * (end.date() - start.date()).days)
-    if end_hour >= cfg.late_shift_end_hour:
+
+    # LATE: kết thúc sau 22h00 (QĐ 2288 Điều 15.2.c)
+    actual_end_hour = end.hour + (24 if end.date() > start.date() else 0)
+    if actual_end_hour >= cfg.late_shift_end_hour:
         return ShiftKind.LATE
+
     return ShiftKind.NORMAL
 
 
@@ -413,6 +442,7 @@ class ComplianceChecker:
             return []
         shifts = sorted(shifts, key=lambda s: s.start)
         v: list[Violation] = []
+        v += self._check_position_overlap(shifts)
         v += self._check_rest_between_shifts(shifts)
         v += self._check_shift_duration(shifts)
         v += self._check_on_position_sessions(shifts)
@@ -503,34 +533,77 @@ class ComplianceChecker:
         return merged
 
     def _check_on_position_sessions(self, shifts):
-        """Mỗi phiên vị trí liên tục ≤ 120 phút. QĐ 2288 Điều 14.1.a."""
-        out, limit = [], self.cfg.max_on_position_minutes
+        """Mỗi phiên vị trí liên tục ≤ 120 phút. QĐ 2288 Điều 14.1.a.
+
+        Kiểm tra từng PositionSession gốc (không gộp): mỗi dòng trong bảng phân vị trí
+        là một phiên riêng. Hai phiên liền tiếp không nghỉ → vi phạm Điều 14.2.a,
+        không phải Điều 14.1.a.
+        """
+        out   = []
+        limit = self.cfg.max_on_position_minutes
         if limit is None:
             return out
         for s in shifts:
-            for sess in self._merge_sessions(s.sessions):
-                if sess.minutes > limit:
+            for sess in s.sessions:
+                dur = sess.minutes
+                if dur > limit:
                     out.append(Violation(
                         rule="max_on_position",
                         severity=Severity.WARNING,
                         controller_id=s.controller_id,
                         controller_name=s.controller_name,
                         message=(
-                            f"Phiên vị trí {sess.position.value} kéo dài {sess.minutes:.0f} phút "
-                            f"liên tục, vượt mức {limit} phút (cần luân phiên/giải lao sớm hơn)."
+                            f"Phiên {sess.position.value} "
+                            f"{sess.start.strftime('%H:%M')}-{sess.end.strftime('%H:%M')} "
+                            f"kéo dài {dur:.0f} phút, vượt mức {limit} phút "
+                            f"(QĐ 2288 Điều 14.1.a — cần giải lao sớm hơn)."
                         ),
                         related_shift_ids=[s.shift_id],
-                        legal_basis="QĐ 2288 Điều 14.1",
+                        legal_basis="QĐ 2288 Điều 14.1.a",
                     ))
+        return out
+
+    def _check_position_overlap(self, shifts: list) -> list:
+        """Cùng 1 KSVKL được phân công 2 vị trí điều hành CÙNG LÚC — CRITICAL.
+        QĐ 2288 Điều 14.1.b + QĐ 2701 Điều 9.1.
+        """
+        out = []
+        for s in shifts:
+            op_sessions = [
+                sess for sess in s.sessions
+                if sess.position not in AUXILIARY_POSITIONS
+            ]
+            if len(op_sessions) < 2:
+                continue
+            for i, a in enumerate(op_sessions):
+                for b in op_sessions[i + 1:]:
+                    ov_s = max(a.start, b.start)
+                    ov_e = min(a.end,   b.end)
+                    if ov_e > ov_s:
+                        ov_min = (ov_e - ov_s).total_seconds() / 60.0
+                        out.append(Violation(
+                            rule="position_overlap",
+                            severity=Severity.CRITICAL,
+                            controller_id=s.controller_id,
+                            controller_name=s.controller_name,
+                            message=(
+                                f"Phân công đồng thời tại 2 vị trí: "
+                                f"{a.position.value} và {b.position.value} "
+                                f"trong {ov_min:.0f} phút "
+                                f"({ov_s.strftime('%H:%M')}-{ov_e.strftime('%H:%M')}). "
+                                f"Một người không thể đảm nhận 2 vị trí điều hành cùng lúc."
+                            ),
+                            related_shift_ids=[s.shift_id],
+                            legal_basis="QĐ 2288 Điều 14.1.b",
+                        ))
         return out
 
     def _check_break_after_position(self, shifts):
         """Sau mỗi phiên vị trí phải có nghỉ ≥ 30 phút (ca ngày) hoặc ≥ 45 phút (ca đêm).
-        QĐ 2288 Điều 14.2.a. Áp dụng cho mọi cặp phiên liền kề trong cùng ca,
-        trừ phiên cuối của ca (không có phiên kế tiếp để kiểm tra).
+        QĐ 2288 Điều 14.2.a.
         """
         out = []
-        day_min = self.cfg.min_break_after_position_day_minutes
+        day_min   = self.cfg.min_break_after_position_day_minutes
         night_min = self.cfg.min_break_after_position_night_minutes
         if day_min is None and night_min is None:
             return out
@@ -538,7 +611,13 @@ class ComplianceChecker:
             sessions = sorted(s.sessions, key=lambda x: x.start)
             for cur, nxt in zip(sessions, sessions[1:]):
                 gap_min = (nxt.start - cur.end).total_seconds() / 60.0
-                required = night_min if s.is_night else day_min
+
+                # Bỏ qua overlap (gap âm) — đã xử lý bởi _check_position_overlap
+                if gap_min < 0:
+                    continue
+
+                is_night_shift = s.effective_kind == ShiftKind.NIGHT
+                required = night_min if is_night_shift else day_min
                 if required is None or gap_min >= required:
                     continue
                 out.append(Violation(
@@ -548,8 +627,8 @@ class ComplianceChecker:
                     controller_name=s.controller_name,
                     message=(
                         f"Chỉ nghỉ {gap_min:.0f} phút sau phiên {cur.position.value} "
-                        f"(ca {'đêm' if s.is_night else 'ngày'}), dưới mức tối thiểu "
-                        f"{required} phút."
+                        f"(ca {'đêm' if is_night_shift else 'ngày'}), dưới mức tối thiểu "
+                        f"{required} phút (QĐ 2288 Điều 14.2.a)."
                     ),
                     related_shift_ids=[s.shift_id],
                     legal_basis="QĐ 2288 Điều 14.2.a",

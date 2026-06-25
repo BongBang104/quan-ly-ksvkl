@@ -28,6 +28,7 @@ export default function SchedulerScreen() {
       activities, setActivities,
       isPublished, setIsPublished, addNotification,
       requests,
+      reloadSchedule,
   } = useContext(AppContext);
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
@@ -47,14 +48,24 @@ export default function SchedulerScreen() {
   }, [employees]);
 
   const [viewMode, setViewMode] = useState('14_DAYS');
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(() => {
+    const saved = localStorage.getItem('scheduler_startDate');
+    if (saved) { const d = new Date(saved); return isNaN(d.getTime()) ? new Date() : d; }
+    return new Date();
+  });
   const [macroReview, setMacroReview] = useState(null);
   const [macroReviewing, setMacroReviewing] = useState(false);
-  const [startCycleTeam, setStartCycleTeam] = useState('Kíp A');
+  const [startCycleTeam, setStartCycleTeam] = useState(
+    () => localStorage.getItem('scheduler_startCycleTeam') || 'Kíp A'
+  );
   const [selectedMoveItem, setSelectedMoveItem] = useState(null);
   const [manualModalData, setManualModalData] = useState(null);
   const [isHighlightEnabled, setIsHighlightEnabled] = useState(settings?.highlightRules?.enabled ?? true);
   const [history, setHistory] = useState([]);
+
+  // Sync localStorage khi startCycleTeam hoặc startDate thay đổi
+  useEffect(() => { localStorage.setItem('scheduler_startCycleTeam', startCycleTeam); }, [startCycleTeam]);
+  useEffect(() => { localStorage.setItem('scheduler_startDate', startDate.toISOString()); }, [startDate]);
 
   // ── Tính monthKey cho tháng đang xem ──────────────────────────────────
   const monthKey = useMemo(() => {
@@ -72,6 +83,10 @@ export default function SchedulerScreen() {
               setExtraAssignments(payload.extraAssignments ?? {});
               if (payload.isPublished !== undefined) setIsPublished(payload.isPublished);
               else setIsPublished(false);
+              if (payload.startCycleTeam) {
+                setStartCycleTeam(payload.startCycleTeam);
+                localStorage.setItem('scheduler_startCycleTeam', payload.startCycleTeam);
+              }
           } catch (error) {
               console.error('Failed loading schedule for', monthKey, error);
               setScheduleData({});
@@ -449,7 +464,7 @@ export default function SchedulerScreen() {
     if (!isAdmin) return;
     if (isPublished) {
         try {
-            await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: false } });
+            await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: false, startCycleTeam } });
             setIsPublished(false);
             if (addNotification) addNotification('Mở khóa Lịch', 'Bạn đang ở chế độ chỉnh sửa. Nhớ Phát hành lại sau khi hoàn tất.', 'warning');
         } catch (error) {
@@ -457,7 +472,11 @@ export default function SchedulerScreen() {
         }
     } else {
         try {
-            await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: true } });
+            await api.put(`/api/schedules/${monthKey}`, { data: { scheduleData, extraAssignments, isPublished: true, startCycleTeam } });
+
+            // Reload lại từ server để state local = server state
+            await reloadSchedule(monthKey);
+
             const extraCount = Object.entries(extraAssignments).filter(([k]) => !k.endsWith('_RESERVE')).reduce((sum, [, v]) => sum + (Array.isArray(v) ? v.length : 0), 0);
             const extraNote = extraCount > 0 ? ` Có ${extraCount} lượt tăng cường được gọi.` : '';
             if (addNotification) addNotification('Phát hành Lịch mới', `Đã phát hành Lịch trực tháng ${monthKey} thành công.${extraNote}`, 'info');

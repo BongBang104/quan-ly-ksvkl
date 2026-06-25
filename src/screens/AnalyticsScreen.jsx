@@ -2423,7 +2423,7 @@ function TasksFeedTab() {
 
   useEffect(() => {
     fetchTasksData(true);
-    const interval = setInterval(() => fetchTasksData(false), 5000);
+    const interval = setInterval(() => fetchTasksData(false), 2000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line
 
@@ -2484,6 +2484,19 @@ function TasksFeedTab() {
     await persistTaskUpdate(updatedTask);
     setViewingTask(updatedTask); viewingTaskRef.current = updatedTask;
     setNewComment(''); setIsProcessing(false);
+  };
+
+  const handleQuickReact = async (reactionText) => {
+    if (viewingTask.isChatLocked) return;
+    setIsProcessing(true);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const commentObj = { id: Date.now(), authorId: currentUser.id, authorName: currentUser.name, authorRole: myRoleLabel, text: reactionText, time: timeStr, type: 'reaction' };
+    const updatedTask = { ...viewingTask, comments: [...(viewingTask.comments || []), commentObj] };
+    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    await persistTaskUpdate(updatedTask);
+    setViewingTask(updatedTask); viewingTaskRef.current = updatedTask;
+    setIsProcessing(false);
   };
 
   const handleAcknowledge = async (empId, empName) => {
@@ -2688,22 +2701,37 @@ function TasksFeedTab() {
                       )}
                     </div>
                     {viewingTask.comments?.map(cmt => (
-                      <div key={cmt.id} style={taskDetailStyles.commentBubble}>
+                      <div key={cmt.id} style={{
+                        ...taskDetailStyles.commentBubble,
+                        ...(cmt.type === 'reaction' ? { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' } : {}),
+                      }}>
                         <div style={taskDetailStyles.commentBubbleHeader}>
                           <span style={taskDetailStyles.commentAuthor}>{cmt.authorName} <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 'normal' }}>({cmt.authorRole})</span></span>
                           <span style={taskDetailStyles.commentTime}>{cmt.time}</span>
                         </div>
-                        <span style={taskDetailStyles.commentText}>{cmt.text}</span>
+                        <span style={{ ...taskDetailStyles.commentText, ...(cmt.type === 'reaction' ? { color: '#15803d', fontStyle: 'italic' } : {}) }}>{cmt.text}</span>
                       </div>
                     ))}
                     {!viewingTask.comments?.length && <span style={taskDetailStyles.emptyComment}>Chưa có thảo luận nào.</span>}
                     {!viewingTask.isChatLocked ? (
+                      <>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <button type="button" onClick={() => handleQuickReact('✅ Đã đọc và hiểu')} disabled={isProcessing}
+                                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #e2e8f0', backgroundColor: '#f0fdf4', color: '#15803d', cursor: 'pointer' }}>
+                          ✅ Đã đọc
+                        </button>
+                        <button type="button" onClick={() => handleQuickReact('❓ Cần làm rõ thêm')} disabled={isProcessing}
+                                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #e2e8f0', backgroundColor: '#fffbeb', color: '#92400e', cursor: 'pointer' }}>
+                          ❓ Cần làm rõ
+                        </button>
+                      </div>
                       <div style={taskDetailStyles.commentInputRow}>
                         <input style={taskDetailStyles.commentInput} placeholder="Nhập ý kiến..." value={newComment} onChange={e => setNewComment(e.target.value)} />
                         <button type="button" style={taskDetailStyles.btnSendComment} onClick={handleSendComment} disabled={isProcessing || !newComment.trim()}>
                           {isProcessing ? <Spinner size="small" color="#fff" /> : <Icon name="send" size={16} color="#fff" />}
                         </button>
                       </div>
+                      </>
                     ) : (
                       <div style={taskDetailStyles.chatLockedBox}><Icon name="lock" size={14} color="#94a3b8" /><span style={taskDetailStyles.chatLockedText}>Tính năng bình luận đã bị khóa.</span></div>
                     )}
@@ -2783,6 +2811,16 @@ function TasksFeedTab() {
                   <div style={taskStyles.footerMetaItem}><Icon name="user" size={12} color="#64748b" /><span style={taskStyles.footerText}>{task.authorName || task.author}</span></div>
                   {task.comments?.length > 0 && (
                     <div style={taskStyles.footerMetaItem}><Icon name="message-circle" size={12} color="#2563eb" /><span style={{ ...taskStyles.footerText, color: '#2563eb' }}>{task.comments.length}</span></div>
+                  )}
+                  {task.visibility && task.visibility !== 'team' && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
+                      backgroundColor: task.visibility === 'unit' ? '#f0fdf4' : '#fef2f2',
+                      color: task.visibility === 'unit' ? '#15803d' : '#dc2626',
+                      border: '1px solid ' + (task.visibility === 'unit' ? '#bbf7d0' : '#fecaca'),
+                    }}>
+                      {task.visibility === 'unit' ? 'Toàn đơn vị' : 'Riêng tư'}
+                    </span>
                   )}
                 </div>
                 {!isDraft && totalEmp > 0 && (

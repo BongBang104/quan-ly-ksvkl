@@ -18,6 +18,7 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
 
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
+  const [visibility, setVisibility] = useState('team');
 
   useEffect(() => {
     if (isOpen) {
@@ -26,6 +27,7 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
       setContent('');
       setDeadlineDate('');
       setDeadlineTime('');
+      setVisibility('team');
       setSelectedEmps([]);
 
       if (!isStaff && currentUser?.team && settings?.teams?.includes(currentUser.team)) {
@@ -76,7 +78,8 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
       authorName: currentUser?.name,
       authorRole: isAdmin ? 'Quản lý' : (isLeader ? 'Kíp trưởng' : 'Nhân viên'),
       comments: [],
-      isChatLocked: false
+      isChatLocked: false,
+      visibility: isStaff ? 'private' : visibility,
     };
 
     onSave(newTask, notifMessage);
@@ -115,6 +118,27 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
                   </>
               )}
             </div>
+
+            {!isStaff && (
+              <>
+                <span style={styles.label}>PHẠM VI HIỂN THỊ</span>
+                <div style={{ ...styles.typeRow, marginBottom: 4 }}>
+                  {[
+                    { id: 'team',    label: 'Nội bộ kíp',  desc: 'Chỉ kíp của bạn thấy' },
+                    { id: 'unit',    label: 'Toàn đơn vị', desc: 'Mọi tài khoản đều thấy' },
+                    { id: 'private', label: 'Riêng tư',    desc: 'Chỉ người được chỉ định' },
+                  ].map(opt => (
+                    <button key={opt.id} type="button" title={opt.desc}
+                      onClick={() => setVisibility(opt.id)}
+                      style={{ ...styles.typeBtn, ...(visibility === opt.id ? styles.typeBtnActive : {}) }}>
+                      <span style={{ ...styles.typeText, ...(visibility === opt.id ? styles.typeTextActive : {}) }}>
+                        {opt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <span style={styles.label}>1. GIAO CHO KÍP</span>
             {isStaff ? (

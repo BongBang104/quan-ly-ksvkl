@@ -315,65 +315,68 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
               )}
           </div>
 
-          <div style={{ display: 'flex', ...styles.tableWrapper, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <div style={{ flex: 1, minWidth: 'min-content' }}>
-                  <div style={styles.table}>
-                      <div style={styles.tableHeadRow}>
-                          {COL_LABELS.map((label, i) => (
-                              <div key={i} style={{...styles.thCell, ...(i === 0 ? {width: 120} : {width: 100})}}>
-                                  <span style={styles.thText}>{label}</span>
-                              </div>
-                          ))}
-                          {isAdmin && status === 'DRAFT' && <div style={{width: 40}} />}
-                      </div>
+          {/* BODY — cuộn dọc, flex: 1 lấp đầy khoảng giữa controlBar và footer */}
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
-                      {gridData.map((row, rIdx) => (
-                          <div key={rIdx} style={styles.tableBodyRow}>
-                              {COL_KEYS.map((cKey, cIdx) => (
-                                  <div key={cKey} style={{...styles.tdCell, ...(cIdx === 0 ? {width: 120} : {width: 100})}}>
-                                      <input
-                                          style={Object.assign({}, styles.cellInput, cIdx === 0 ? styles.cellInputTime : {})}
-                                          value={row[cKey]}
-                                          onChange={(e) => handleCellChange(e.target.value, rIdx, cKey)}
-                                          onPaste={(e) => {
-                                              const text = e.clipboardData.getData('text');
-                                              if (text.includes('\t') || text.includes('\n')) {
-                                                  e.preventDefault();
-                                                  handleCellChange(text, rIdx, cKey);
-                                              }
-                                          }}
-                                          disabled={!isAdmin || status !== 'DRAFT'}
-                                      />
-                                  </div>
-                              ))}
-                              {isAdmin && status === 'DRAFT' && (
-                                  <button type="button" style={styles.tdAction} onClick={() => removeRow(rIdx)}>
-                                      <Icon name="trash-2" size={14} color="#ef4444"/>
-                                  </button>
-                              )}
+            {/* Bảng grid — cuộn ngang riêng */}
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, flexShrink: 0 }}>
+              <div style={styles.table}>
+                  <div style={styles.tableHeadRow}>
+                      {COL_LABELS.map((label, i) => (
+                          <div key={i} style={{...styles.thCell, ...(i === 0 ? {width: 120} : {width: 100})}}>
+                              <span style={styles.thText}>{label}</span>
                           </div>
                       ))}
-                      {gridData.length === 0 && <span style={{color: '#64748b', padding: 20, textAlign: 'center'}}>Bảng đang trống.</span>}
+                      {isAdmin && status === 'DRAFT' && <div style={{width: 40}} />}
                   </div>
-              </div>
-          </div>
 
-          {/* ReviewResultPanel hiển thị kết quả rà soát analytics */}
-          {reviewResult && (
-              <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+                  {gridData.map((row, rIdx) => (
+                      <div key={rIdx} style={styles.tableBodyRow}>
+                          {COL_KEYS.map((cKey, cIdx) => (
+                              <div key={cKey} style={{...styles.tdCell, ...(cIdx === 0 ? {width: 120} : {width: 100})}}>
+                                  <input
+                                      style={Object.assign({}, styles.cellInput, cIdx === 0 ? styles.cellInputTime : {})}
+                                      value={row[cKey]}
+                                      onChange={(e) => handleCellChange(e.target.value, rIdx, cKey)}
+                                      onPaste={(e) => {
+                                          const text = e.clipboardData.getData('text');
+                                          if (text.includes('\t') || text.includes('\n')) {
+                                              e.preventDefault();
+                                              handleCellChange(text, rIdx, cKey);
+                                          }
+                                      }}
+                                      disabled={!isAdmin || status !== 'DRAFT'}
+                                  />
+                              </div>
+                          ))}
+                          {isAdmin && status === 'DRAFT' && (
+                              <button type="button" style={styles.tdAction} onClick={() => removeRow(rIdx)}>
+                                  <Icon name="trash-2" size={14} color="#ef4444"/>
+                              </button>
+                          )}
+                      </div>
+                  ))}
+                  {gridData.length === 0 && <span style={{color: '#64748b', padding: 20, textAlign: 'center'}}>Bảng đang trống.</span>}
+              </div>
+            </div>
+
+            {/* ReviewResultPanel — ngay dưới bảng, trong cùng scroll area */}
+            {reviewResult && (
+              <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 16, paddingTop: 4, flexShrink: 0 }}>
                   <ReviewResultPanel result={reviewResult} />
               </div>
-          )}
+            )}
 
-          {isAdmin && warnings.length > 0 && (
-              <div style={styles.warningArea}>
-                  <div style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4}}>
+            {isAdmin && warnings.length > 0 && (
+              <div style={{ ...styles.warningArea, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <Icon name="alert-triangle" size={14} color="#ef4444" />
                       <span style={styles.warningTitle}>Phát hiện xung đột</span>
                   </div>
                   {warnings.map((w, i) => <span key={i} style={styles.warningText}>• {w}</span>)}
               </div>
-          )}
+            )}
+          </div>{/* end BODY */}
 
           <div style={styles.footer}>
               {/* Nút rà soát và xuất checklist */}
@@ -419,19 +422,18 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
 
 const styles = {
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  modalContainer: { backgroundColor: '#0f172a', borderRadius: 12, width: '100%', maxWidth: 1400, borderWidth: 1, borderColor: '#1e293b', boxShadow: "0 4px 6px rgba(0,0,0,0.08)"},
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderColor: '#1e293b' },
+  modalContainer: { backgroundColor: '#0f172a', borderRadius: 12, width: '100%', maxWidth: 1020, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #1e293b', boxShadow: '0 25px 50px rgba(0,0,0,0.4)' },
+  header: { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottom: '1px solid #1e293b', flexShrink: 0, backgroundColor: '#0f172a' },
   headerTitle: { fontFamily: 'Times New Roman', fontSize: 18, fontWeight: 'bold', color: '#f8fafc' },
   headerSub: { fontFamily: 'Times New Roman', fontSize: 12, color: '#94a3b8', marginTop: 4 },
   btnClose: { backgroundColor: '#1e293b', padding: 8, borderRadius: 20 },
-  viewOnlyBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#064e3b', paddingTop: 6 , paddingBottom: 6 ,},
+  viewOnlyBanner: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#064e3b', paddingTop: 6, paddingBottom: 6, flexShrink: 0 },
   viewOnlyText: { fontFamily: 'Times New Roman', fontSize: 11, fontWeight: 'bold', color: '#34d399', letterSpacing: 1 },
-  controlBar: { flexDirection: 'row', padding: 16, gap: 12, alignItems: 'center' },
+  controlBar: { display: 'flex', flexDirection: 'row', padding: 16, gap: 12, alignItems: 'center', flexShrink: 0, borderBottom: '1px solid #1e293b' },
   controlBox: { flex: 1, maxWidth: 200 },
   inputControl: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderRadius: 8, padding: 10, color: '#f8fafc', fontFamily: 'Times New Roman', fontSize: 14, textAlign: 'center' },
   rowControls: { flexDirection: 'row', gap: 8, marginLeft: 'auto' },
   iconBtn: { backgroundColor: '#3b82f6', padding: 10, borderRadius: 8 },
-  tableWrapper: { backgroundColor: '#0f172a', flex: 1, paddingLeft: 16 , paddingRight: 16 , overflow: 'hidden' },
   table: { borderWidth: 1, borderColor: '#334155', borderRadius: 8, overflow: 'hidden', backgroundColor: '#1e293b' },
   tableHeadRow: { flexDirection: 'row', backgroundColor: '#0f172a', borderBottomWidth: 1, borderColor: '#334155' },
   thCell: { padding: 12, borderRightWidth: 1, borderColor: '#334155', justifyContent: 'center', alignItems: 'center' },
@@ -444,7 +446,7 @@ const styles = {
   warningArea: { margin: 16, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: '#ef4444', borderRadius: 8, padding: 12 },
   warningTitle: { fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#ef4444' },
   warningText: { fontFamily: 'Times New Roman', fontSize: 12, color: '#fca5a5', marginTop: 2, fontStyle: 'italic' },
-  footer: { flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderTopWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a', gap: 12 },
+  footer: { display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderTop: '1px solid #1e293b', backgroundColor: '#0f172a', gap: 12, flexShrink: 0, flexWrap: 'wrap' },
   btnDraft: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, paddingBottom: 10, paddingLeft: 16, paddingRight: 16, borderRadius: 8, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1e293b' },
   btnDraftText: { fontFamily: 'Times New Roman', fontSize: 13, fontWeight: 'bold', color: '#f8fafc' },
   btnPublish: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, paddingBottom: 10, paddingLeft: 20, paddingRight: 20, borderRadius: 8, backgroundColor: '#16a34a' },
