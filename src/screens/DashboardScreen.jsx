@@ -13,6 +13,7 @@ import api from '../services/ApiService';
 // ── Design System ───────────────────────────────────────────────────────────
 const D = {
   page: {
+    width: '100%',
     minHeight: '100%',
     backgroundColor: '#f4f6f9',
     padding: '20px 20px 40px',
@@ -20,6 +21,8 @@ const D = {
     boxSizing: 'border-box',
   },
   header: {
+    width: '100%',
+    boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0c1a3a 0%, #1a3560 55%, #0f2d5c 100%)',
     borderRadius: 18,
     padding: '18px 24px',
@@ -41,7 +44,7 @@ const D = {
   },
   statGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
     gap: 14,
     marginBottom: 20,
   },
@@ -57,13 +60,25 @@ const D = {
   },
   grid2: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: 16,
     marginBottom: 16,
   },
   grid3: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 16,
+    marginBottom: 16,
+  },
+  grid2Responsive: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+    gap: 16,
+    marginBottom: 16,
+  },
+  grid3Responsive: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
     gap: 16,
     marginBottom: 16,
   },
@@ -216,7 +231,7 @@ function AdminStatGrid({ data, employees, requests }) {
   return (
     <div style={D.statGrid}>
       {stats.map(s => (
-        <div key={s.label} style={{ ...D.statCard, borderBottom: `3px solid ${s.color}` }}>
+        <div key={s.label} style={{ ...D.statCard, borderBottom: `3px solid ${s.color}`, minWidth: 0 }}>
           {s.urgent && <div style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,.25)' }} />}
           <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <Icon name={s.icon} size={17} color={s.color} />
@@ -461,7 +476,7 @@ function WeekCalendarStrip({ myEmpId, scheduleData, settings, todayObj }) {
         {strips.map(({ d, isToday, dayLabel, shiftCode }, i) => {
           const sc = shiftColors[shiftCode];
           return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 4px', borderRadius: 8, backgroundColor: isToday ? '#0f172a' : 'transparent', border: isToday ? 'none' : '1px solid #f1f5f9' }}>
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 2px', borderRadius: 8, backgroundColor: isToday ? '#0f172a' : 'transparent', border: isToday ? 'none' : '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden' }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: isToday ? 'rgba(255,255,255,.6)' : '#94a3b8' }}>{dayLabel}</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: isToday ? '#fff' : '#374151' }}>{d.getDate()}</div>
               {shiftCode ? (
@@ -872,12 +887,12 @@ export default function DashboardScreen({ onNavigateTo } = {}) {
         </div>
 
         {/* Main content grid */}
-        <div style={D.grid2}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={D.grid2Responsive}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             <NextShiftWidget shift={myNextShift} onOpenRoster={() => setShowFullRoster(true)} />
             <WeekCalendarStrip myEmpId={myEmpId} scheduleData={scheduleData} settings={settings} todayObj={currentTime} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             {isChief && <ChiefApprovalWidget requests={requests} userTeam={userTeam} onApprove={handleLeaderApproveSwap} />}
             {isChief ? <ChiefQuickActions onNavigateTo={onNavigateTo} /> : <StaffQuickActions onNavigateTo={onNavigateTo} />}
             <MyRequestsWidget requests={requests} myEmpId={myEmpId} onNavigateTo={onNavigateTo} />
@@ -893,12 +908,12 @@ export default function DashboardScreen({ onNavigateTo } = {}) {
       <HeaderBar name={myEmpName || 'Admin'} role={currentUser?.role} currentTime={currentTime} urgentCount={dashboardData.pendingRequests > 5 ? dashboardData.pendingRequests : 0} />
       <OperationalStatusBar urgentCount={dashboardData.pendingRequests > 5 ? dashboardData.pendingRequests : 0} pendingCount={dashboardData.pendingRequests} />
       <AdminStatGrid data={dashboardData} employees={employees} requests={requests} />
-      <div style={D.grid3}>
+      <div style={D.grid3Responsive}>
         <DutyRosterWidget members={dashboardData.membersOnDuty} team={dashboardData.teamOnDuty} />
         <PendingRequestsWidget requests={requests} onNavigateTo={onNavigateTo} />
         <AdminQuickActions onNavigateTo={onNavigateTo} />
       </div>
-      <div style={D.grid2}>
+      <div style={D.grid2Responsive}>
         <AbsenceWidget leaves={dashboardData.leavesToday} employees={employees} settings={settings} />
         <SmsProgressWidget reports={safeSmsReports} />
       </div>
