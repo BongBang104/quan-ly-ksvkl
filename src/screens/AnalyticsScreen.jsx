@@ -1023,6 +1023,7 @@ function FactorGroup({ title, options, selected, onChange }) {
 }
 
 function FatigueReportTab({ currentUser }) {
+  const { addNotification } = useContext(AppContext);
   const [view, setView] = useState('form');
   const isChief = currentUser?.isChief || ['ADMIN', 'superadmin', 'CHIEF'].includes(currentUser?.role);
   const isAdmin = ['ADMIN', 'superadmin'].includes(currentUser?.role);
@@ -1054,10 +1055,10 @@ function FatigueReportTab({ currentUser }) {
 
   const submit = async () => {
     if (!fatigueOnset || !kssScore || !impactDescription) {
-      window.alert('Vui lòng điền các trường bắt buộc (Phần B).');
+      addNotification('Thông báo', 'Vui lòng điền các trường bắt buộc (Phần B).', 'warning');
       return;
     }
-    if (!agreed) { window.alert('Vui lòng xác nhận cam kết (Phần C).'); return; }
+    if (!agreed) { addNotification('Thông báo', 'Vui lòng xác nhận cam kết (Phần C).', 'warning'); return; }
     setSubmitting(true);
     try {
       const { data } = await api.post('/api/fatigue-reports', {
@@ -1073,7 +1074,7 @@ function FatigueReportTab({ currentUser }) {
       });
       setSubmitResult(data);
     } catch (e) {
-      window.alert('Lỗi gửi báo cáo: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi gửi báo cáo', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -1293,6 +1294,7 @@ function FatigueMineList() {
 }
 
 function FatigueForChiefList() {
+  const { addNotification } = useContext(AppContext);
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ackingId, setAckingId] = useState(null);
@@ -1307,7 +1309,7 @@ function FatigueForChiefList() {
   const handleAck = async (id) => {
     setAckingId(id);
     try { await api.put(`/api/fatigue-reports/${id}/acknowledge`); await load(); }
-    catch (e) { window.alert('Lỗi xác nhận: ' + (e?.response?.data?.message ?? e.message)); }
+    catch (e) { addNotification('Lỗi xác nhận', e?.response?.data?.message ?? e.message, 'error'); }
     finally { setAckingId(null); }
   };
 
@@ -1351,6 +1353,7 @@ function FatigueForChiefList() {
 }
 
 function FatigueSummary() {
+  const { addNotification } = useContext(AppContext);
   const now    = new Date();
   const d30ago = new Date(Date.now() - 30 * 24 * 3600_000);
   const [startDate, setStartDate] = useState(d30ago.toISOString().slice(0, 10));
@@ -1367,7 +1370,7 @@ function FatigueSummary() {
       setData(arr);
     } catch (e) {
       console.error(e);
-      window.alert('Lỗi tải dữ liệu: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi tải dữ liệu', e?.response?.data?.message ?? e.message, 'error');
     } finally { setLoading(false); }
   };
 
@@ -1518,6 +1521,7 @@ function _fatStatusText(s)  { return ({ submitted:'#92400e', acknowledged:'#1665
 // ─── ShiftExchangeTab (Phase E4) ──────────────────────────────────────────────
 
 function ShiftExchangeTab({ currentUser }) {
+  const { addNotification } = useContext(AppContext);
   const [view, setView] = useState('list');
   const [exchanges, setExchanges] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1572,7 +1576,7 @@ function ShiftExchangeTab({ currentUser }) {
 
   const submitLeave = async () => {
     if (!leaveStartDate || !leaveReason) {
-      window.alert('Vui lòng nhập ngày bắt đầu và lý do nghỉ phép.'); return;
+      addNotification('Thông báo', 'Vui lòng nhập ngày bắt đầu và lý do nghỉ phép.', 'warning'); return;
     }
     setLeaveSubmitting(true);
     try {
@@ -1587,21 +1591,21 @@ function ShiftExchangeTab({ currentUser }) {
         status: 'Pending',
         createdAt: new Date().toISOString(),
       });
-      window.alert('Đã gửi đơn nghỉ phép. Quản lý sẽ xem xét sớm.');
+      addNotification('Thành công', 'Đã gửi đơn nghỉ phép. Quản lý sẽ xem xét sớm.', 'success');
       setView('list'); setLeaveStartDate(''); setLeaveEndDate(''); setLeaveReason('');
       loadMine();
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setLeaveSubmitting(false); }
   };
 
   const runPrecheck = async () => {
     if (!appShiftDate || !counterpartyId || !counterpartyName) {
-      window.alert('Vui lòng điền đầy đủ thông tin trước khi kiểm tra điều kiện.');
+      addNotification('Thông báo', 'Vui lòng điền đầy đủ thông tin trước khi kiểm tra điều kiện.', 'warning');
       return;
     }
     if (type === 'EXCHANGE' && !cpShiftDate) {
-      window.alert('Vui lòng chọn ngày ca hoàn trả cho yêu cầu Đổi ca.');
+      addNotification('Thông báo', 'Vui lòng chọn ngày ca hoàn trả cho yêu cầu Đổi ca.', 'warning');
       return;
     }
 
@@ -1618,7 +1622,7 @@ function ShiftExchangeTab({ currentUser }) {
       });
       setPrecheckResult(data);
     } catch (e) {
-      window.alert('Lỗi kiểm tra điều kiện: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi kiểm tra điều kiện', e?.response?.data?.message ?? e.message, 'error');
     } finally {
       setPrechecking(false);
     }
@@ -1635,7 +1639,7 @@ function ShiftExchangeTab({ currentUser }) {
   const handleApprove = async (ex) => {
     const reason = overrideReasons[ex.id] || '';
     if (!reason && ((ex.precheckResult?.warnings?.length ?? 0) > 0 || ex.precheckResult?.can_approve === false)) {
-      window.alert('Yêu cầu phải có lý do ghi đè khi precheck có cảnh báo hoặc không thể approve.');
+      addNotification('Thông báo', 'Yêu cầu phải có lý do ghi đè khi precheck có cảnh báo hoặc không thể approve.', 'warning');
       return;
     }
 
@@ -1644,11 +1648,11 @@ function ShiftExchangeTab({ currentUser }) {
       await api.put(`/api/shift-exchanges/${ex.id}/approve`, {
         override_reason: reason || undefined,
       });
-      window.alert('Phê duyệt thành công.');
+      addNotification('Thành công', 'Phê duyệt thành công.', 'success');
       setApprovalOpen(prev => ({ ...prev, [ex.id]: false }));
       loadMine();
     } catch (e) {
-      window.alert('Lỗi phê duyệt: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi phê duyệt', e?.response?.data?.message ?? e.message, 'error');
     } finally {
       setApproving(prev => ({ ...prev, [ex.id]: false }));
     }
@@ -1665,27 +1669,27 @@ function ShiftExchangeTab({ currentUser }) {
       await api.put(`/api/shift-exchanges/${id}/agree`);
       loadMine();
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setAgreeing(prev => ({ ...prev, [id]: false })); }
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) { window.alert('Vui lòng ghi lý do từ chối.'); return; }
+    if (!rejectReason.trim()) { addNotification('Thông báo', 'Vui lòng ghi lý do từ chối.', 'warning'); return; }
     try {
       await api.put(`/api/shift-exchanges/${rejectModalId}/reject`, { reason: rejectReason });
       setRejectModalId(null); setRejectReason('');
       loadMine();
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     }
   };
 
   const submit = async () => {
     if (!appShiftDate || !counterpartyId || !counterpartyName) {
-      window.alert('Vui lòng điền đầy đủ thông tin.');
+      addNotification('Thông báo', 'Vui lòng điền đầy đủ thông tin.', 'warning');
       return;
     }
-    if (!committed) { window.alert('Vui lòng xác nhận cam kết.'); return; }
+    if (!committed) { addNotification('Thông báo', 'Vui lòng xác nhận cam kết.', 'warning'); return; }
     setSubmitting(true);
     try {
       await api.post('/api/shift-exchanges', {
@@ -1695,11 +1699,11 @@ function ShiftExchangeTab({ currentUser }) {
         counterpartyShiftCode: type === 'EXCHANGE' ? cpShiftCode : null,
         facilityType,
       });
-      window.alert('Đã gửi yêu cầu. Người nhận sẽ được thông báo.');
+      addNotification('Thành công', 'Đã gửi yêu cầu. Người nhận sẽ được thông báo.', 'success');
       setView('list');
       loadMine();
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -1969,6 +1973,7 @@ function ShiftExchangeTab({ currentUser }) {
 // ─── ShiftBriefingTab (Phase F3) ──────────────────────────────────────────────
 
 function ShiftBriefingTab({ currentUser }) {
+  const { addNotification } = useContext(AppContext);
   const [view, setView] = useState('list');
   const [briefings, setBriefings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1992,7 +1997,7 @@ function ShiftBriefingTab({ currentUser }) {
 
   const save = async (asLevel) => {
     if (!formData.team || !formData.shiftDate) {
-      window.alert('Vui lòng điền kíp và ngày ca.'); return;
+      addNotification('Thông báo', 'Vui lòng điền kíp và ngày ca.', 'warning'); return;
     }
     setSubmitting(true);
     try {
@@ -2004,11 +2009,11 @@ function ShiftBriefingTab({ currentUser }) {
       } else {
         await api.put(`/api/shift-briefings/${formData.id}`, { ...formData, level: asLevel });
       }
-      window.alert(asLevel === 'formal' ? 'Đã lưu Báo cáo chính thức.' : 'Đã lưu ghi chép nội bộ.');
+      addNotification('Thành công', asLevel === 'formal' ? 'Đã lưu Báo cáo chính thức.' : 'Đã lưu ghi chép nội bộ.', 'success');
       loadRecent();
       setView('list');
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -2132,6 +2137,7 @@ const WEST_FIELDS = [
 ];
 
 function WestHandoverEditor({ currentUser }) {
+  const { addNotification } = useContext(AppContext);
   const [team, setTeam] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [shiftCode, setShiftCode] = useState('S');
@@ -2141,7 +2147,7 @@ function WestHandoverEditor({ currentUser }) {
   const [saving, setSaving] = useState(false);
 
   const loadOrCreate = async () => {
-    if (!team) { window.alert('Vui lòng nhập tên kíp.'); return; }
+    if (!team) { addNotification('Thông báo', 'Vui lòng nhập tên kíp.', 'warning'); return; }
     setLoading(true);
     try {
       const { data } = await api.post('/api/shift-handovers', { team, handoverDate: date, shiftCode });
@@ -2149,7 +2155,7 @@ function WestHandoverEditor({ currentUser }) {
       setFields({ weather: data.weather || '', equipment: data.equipment || '',
                   situation: data.situation || '', traffic: data.traffic || '' });
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setLoading(false); }
   };
 
@@ -2158,9 +2164,9 @@ function WestHandoverEditor({ currentUser }) {
     setSaving(true);
     try {
       await api.put(`/api/shift-handovers/${handover.id}`, fields);
-      window.alert('Đã lưu nội dung giao ca.');
+      addNotification('Thành công', 'Đã lưu nội dung giao ca.', 'success');
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSaving(false); }
   };
 
@@ -2170,9 +2176,9 @@ function WestHandoverEditor({ currentUser }) {
     try {
       const { data } = await api.put(`/api/shift-handovers/${handover.id}/sign-outgoing`);
       setHandover(data);
-      window.alert('Đã ký xác nhận (kíp giao). Chờ kíp nhận xác nhận.');
+      addNotification('Thành công', 'Đã ký xác nhận (kíp giao). Chờ kíp nhận xác nhận.', 'success');
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSaving(false); }
   };
 
@@ -2182,9 +2188,9 @@ function WestHandoverEditor({ currentUser }) {
     try {
       const { data } = await api.put(`/api/shift-handovers/${handover.id}/sign-incoming`);
       setHandover(data);
-      window.alert('Giao nhận ca hoàn tất. Biên bản đã được ghi nhận.');
+      addNotification('Thành công', 'Giao nhận ca hoàn tất. Biên bản đã được ghi nhận.', 'success');
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setSaving(false); }
   };
 
@@ -2281,6 +2287,7 @@ function WestHandoverEditor({ currentUser }) {
 }
 
 function WestHandoverViewOnly({ currentUser }) {
+  const { addNotification } = useContext(AppContext);
   const [team,      setTeam]      = useState(currentUser?.team || '');
   const [date,      setDate]      = useState(() => new Date().toISOString().slice(0, 10));
   const [shiftCode, setShiftCode] = useState('S');
@@ -2288,7 +2295,7 @@ function WestHandoverViewOnly({ currentUser }) {
   const [loading,   setLoading]   = useState(false);
 
   const load = async () => {
-    if (!team) { window.alert('Vui lòng nhập tên kíp.'); return; }
+    if (!team) { addNotification('Thông báo', 'Vui lòng nhập tên kíp.', 'warning'); return; }
     setLoading(true);
     try {
       const { data } = await api.get(
@@ -2299,7 +2306,7 @@ function WestHandoverViewOnly({ currentUser }) {
         : (data?.shiftCode === shiftCode ? data : null);
       setHandover(found || null);
     } catch (e) {
-      window.alert('Lỗi: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi', e?.response?.data?.message ?? e.message, 'error');
     } finally { setLoading(false); }
   };
 
@@ -2883,7 +2890,7 @@ function TasksFeedTab() {
         </div>
       </Modal>
 
-      <TaskFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSave={handleSaveNewTask} settings={settings} employees={employees} currentUser={currentUser} />
+      <TaskFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSave={handleSaveNewTask} settings={settings} employees={employees} currentUser={currentUser} addNotification={addNotification} />
       <SmsReportModal isOpen={isSmsModalOpen} onClose={() => setIsSmsModalOpen(false)} onSaveReport={handleSaveNewTask} setConfirmDialog={setConfirmDialog} showToast={showToast} />
 
       <Modal visible={!!viewingTask} maxWidth="860px">

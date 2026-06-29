@@ -454,7 +454,7 @@ export default function SchedulerScreen() {
       const result = await reviewMacroRoster({ period_start: periodStart, period_end: periodEnd, assignments });
       setMacroReview(result);
     } catch (e) {
-      window.alert('Lỗi rà soát: ' + (e?.response?.data?.message ?? e.message));
+      addNotification('Lỗi rà soát', e?.response?.data?.message ?? e.message, 'error');
     } finally {
       setMacroReviewing(false);
     }

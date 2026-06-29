@@ -9,7 +9,7 @@ const generateDefaultId = (name) => {
     return `tctsdn.${cleanName}`;
 };
 
-export default function AccountManagerScreen({ employees, setEmployees, settings }) {
+export default function AccountManagerScreen({ employees, setEmployees, settings, addNotification }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmp, setEditingEmp] = useState(null);
     const [createMode, setCreateMode] = useState('SINGLE');
@@ -54,7 +54,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
 
     const handleSaveSingle = async () => {
         if (!formData.id || !formData.name) {
-            window.alert('Lỗi\nVui lòng nhập ID Đăng nhập và Họ tên.');
+            addNotification('Lỗi', 'Vui lòng nhập ID Đăng nhập và Họ tên.', 'error');
             return;
         }
 
@@ -71,7 +71,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             } else {
                 // Tạo mới — backend sinh password
                 if (employees.some(e => e.id === formData.id)) {
-                    window.alert('Lỗi\nID Đăng nhập này đã tồn tại!');
+                    addNotification('Lỗi', 'ID Đăng nhập này đã tồn tại!', 'error');
                     return;
                 }
                 const res = await api.post('/api/employees', {
@@ -84,7 +84,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                 setCreatedPassword({ id: employee.id, password: generatedPassword });
             }
         } catch (err) {
-            window.alert('Lỗi\nKhông thể lưu tài khoản. Vui lòng thử lại.');
+            addNotification('Lỗi', 'Không thể lưu tài khoản. Vui lòng thử lại.', 'error');
             return;
         }
         setIsModalOpen(false);
@@ -92,7 +92,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
 
     const handleSaveBulk = async () => {
         if (!bulkData.trim()) {
-            window.alert('Lỗi\nVui lòng nhập danh sách nhân sự.');
+            addNotification('Lỗi', 'Vui lòng nhập danh sách nhân sự.', 'error');
             return;
         }
 
@@ -128,7 +128,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
         });
 
         if (newList.length === 0) {
-            window.alert('Lỗi\nKhông có dòng hợp lệ nào.');
+            addNotification('Lỗi', 'Không có dòng hợp lệ nào.', 'error');
             return;
         }
 
@@ -143,7 +143,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
             }));
             setBulkPasswords(pwTable);
         } catch (err) {
-            window.alert('Lỗi\nKhông thể lưu danh sách. Vui lòng thử lại.');
+            addNotification('Lỗi', 'Không thể lưu danh sách. Vui lòng thử lại.', 'error');
         }
         setIsModalOpen(false);
     };
@@ -161,7 +161,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                     const { generatedPassword } = res.data;
                     setCreatedPassword({ id: empId, password: generatedPassword });
                 } catch (err) {
-                    window.alert('Lỗi\nKhông thể reset mật khẩu. Vui lòng thử lại.');
+                    addNotification('Lỗi', 'Không thể reset mật khẩu. Vui lòng thử lại.', 'error');
                 }
             }
         });
@@ -179,7 +179,7 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                     await api.delete(`/api/employees/${id}`);
                     setEmployees(prev => prev.filter(e => e.id !== id));
                 } catch (err) {
-                    window.alert('Lỗi\nKhông thể xóa tài khoản. Vui lòng thử lại.');
+                    addNotification('Lỗi', 'Không thể xóa tài khoản. Vui lòng thử lại.', 'error');
                 }
             }
         });
@@ -240,8 +240,8 @@ export default function AccountManagerScreen({ employees, setEmployees, settings
                                 type="button"
                                 onClick={() => {
                                     navigator.clipboard.writeText(createdPassword.password)
-                                        .then(() => window.alert('Đã copy mật khẩu vào clipboard.'))
-                                        .catch(() => window.alert(`Mật khẩu: ${createdPassword.password}`));
+                                        .then(() => addNotification('Thông báo', 'Đã copy mật khẩu vào clipboard.', 'info'))
+                                        .catch(() => addNotification('Thông báo', `Mật khẩu: ${createdPassword.password}`, 'info'));
                                 }}
                                 style={{
                                     flex: 1, padding: '10px 0', borderRadius: 8,

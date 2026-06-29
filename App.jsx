@@ -288,8 +288,8 @@ function MainApp() {
       case 'ANALYTICS':    return <AnalyticsScreen    {...p} />;
       case 'ACCOUNTS':     return <AccountManagerScreen {...p} />;
       case 'SETTINGS':     return <SettingsScreen {...p} />;
-      case 'APPROVE':      return <SuperAdminScreen />;
-      case 'AUDIT_LOG':    return <AuditLogScreen />;
+      case 'APPROVE':      return <SuperAdminScreen addNotification={p.addNotification} />;
+      case 'AUDIT_LOG':    return <AuditLogScreen addNotification={p.addNotification} />;
       default:             return <DashboardScreen    {...p} scheduleData={scheduleData} extraAssignments={extraAssignments} />;
     }
   };

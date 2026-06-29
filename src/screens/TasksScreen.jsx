@@ -369,7 +369,7 @@ export default function TasksScreen() {
           </div>
       </Modal>
 
-      <TaskFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSave={handleSaveNewTask} settings={settings} employees={employees} currentUser={currentUser} />
+      <TaskFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSave={handleSaveNewTask} settings={settings} employees={employees} currentUser={currentUser} addNotification={addNotification} />
 
       <SmsReportModal
          isOpen={isSmsModalOpen} onClose={() => setIsSmsModalOpen(false)}

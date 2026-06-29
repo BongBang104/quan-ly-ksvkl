@@ -182,7 +182,7 @@ const OrgListEditor = ({ title, listKey, settings, setSettings }) => {
         if (!val.trim()) return;
         const currentList = settings[listKey] || [];
         if (currentList.includes(val.trim())) {
-            window.alert('Trùng lặp\\nGiá trị này đã tồn tại trong danh sách.');
+            addNotification('Trùng lặp', 'Giá trị này đã tồn tại trong danh sách.', 'warning');
             return;
         }
         setSettings(prev => ({ ...prev, [listKey]: [...currentList, val.trim()] }));
@@ -233,7 +233,7 @@ function Toggle({ value, onChange, disabled = false }) {
 // ==========================================
 // COMPONENT CHÍNH: SETTINGS SCREEN
 // ==========================================
-export default function SettingsScreen({ settings, setSettings, currentUser, employees = [], requests = [], activities = [] }) {
+export default function SettingsScreen({ settings, setSettings, currentUser, employees = [], requests = [], activities = [], addNotification }) {
     const [activeSubTab, setActiveSubTab] = useState('ORG');
     const [isSaving, setIsSaving] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -258,9 +258,9 @@ export default function SettingsScreen({ settings, setSettings, currentUser, emp
         setIsSaving(true);
         try {
             await DataService.saveData(settings, "atc_system", "settings", { config: settings });
-            window.alert("Thành công\\nĐã lưu cấu hình!");
+            addNotification('Thành công', 'Đã lưu cấu hình!', 'success');
         } catch (error) {
-            window.alert("Cảnh báo\\n" + (error.message || "Lưu cục bộ thành công nhưng chưa thể đồng bộ mạng."));
+            addNotification('Cảnh báo', error.message || 'Lưu cục bộ thành công nhưng chưa thể đồng bộ mạng.', 'warning');
         } finally {
             setIsSaving(false);
         }
@@ -268,22 +268,22 @@ export default function SettingsScreen({ settings, setSettings, currentUser, emp
 
     const handleApplyNetworkSync = async () => {
         if (!networkConfig.apiBaseUrl.trim()) {
-            window.alert('Lỗi\\nVui lòng nhập URL của NestJS API Server.'); return;
+            addNotification('Lỗi', 'Vui lòng nhập URL của NestJS API Server.', 'error'); return;
         }
         setIsSyncing(true);
         try {
             const newSettings = { ...settings, apiBaseUrl: networkConfig.apiBaseUrl.trim() };
             setSettings(newSettings);
             await DataService.saveData(newSettings, 'atc_system', 'settings', { config: newSettings });
-            window.alert('Hoàn tất!\\nĐã cập nhật địa chỉ API Server thành công.');
-        } catch (e) { window.alert('Lỗi\\n' + e.message); } finally { setIsSyncing(false); }
+            addNotification('Hoàn tất!', 'Đã cập nhật địa chỉ API Server thành công.', 'success');
+        } catch (e) { addNotification('Lỗi', e.message, 'error'); } finally { setIsSyncing(false); }
     };
 
     const handleAddShift = () => {
         const { code, label, startTime, endTime } = newShiftForm;
-        if (!code || !label) { window.alert('Thiếu thông tin\\nVui lòng nhập Mã và Tên ca.'); return; }
+        if (!code || !label) { addNotification('Thiếu thông tin', 'Vui lòng nhập Mã và Tên ca.', 'warning'); return; }
         const upperCode = code.toUpperCase().trim();
-        if (settings.shiftTypes?.some(s => s.code === upperCode)) { window.alert('Trùng lặp\\nMã ca này đã tồn tại.'); return; }
+        if (settings.shiftTypes?.some(s => s.code === upperCode)) { addNotification('Trùng lặp', 'Mã ca này đã tồn tại.', 'warning'); return; }
 
         const nextIndex = settings.shiftTypes.length;
 
@@ -761,11 +761,11 @@ export default function SettingsScreen({ settings, setSettings, currentUser, emp
                                 reader.onload = evt => {
                                     try {
                                         const data = JSON.parse(evt.target.result);
-                                        if (!data.settings) { window.alert('File không hợp lệ.'); return; }
+                                        if (!data.settings) { addNotification('Thông báo', 'File không hợp lệ.', 'error'); return; }
                                         if (!window.confirm('Ghi đè toàn bộ cấu hình hiện tại bằng file này?')) return;
                                         setSettings(prev => ({ ...prev, ...data.settings }));
-                                        window.alert('Đã import. Nhấn "Lưu Thay Đổi" để áp dụng.');
-                                    } catch { window.alert('File JSON không đúng định dạng.'); }
+                                        addNotification('Thông báo', 'Đã import. Nhấn "Lưu Thay Đổi" để áp dụng.', 'info');
+                                    } catch { addNotification('Thông báo', 'File JSON không đúng định dạng.', 'error'); }
                                 };
                                 reader.readAsText(file);
                                 e.target.value = '';

@@ -101,7 +101,7 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
     } else {
         setRequests(p => p.filter(r => r.id !== id));
     }
-    window.alert('Thành công\nĐã phê duyệt yêu cầu.');
+    addNotification('Thành công', 'Đã phê duyệt yêu cầu.', 'success');
     if (addNotification) {
         if (req?.type === 'Đổi ca' || req?.type === 'CHANGE') {
             const shiftInfo = req.shiftCode ? ` ca ${req.shiftCode}` : '';
@@ -119,7 +119,7 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
       const req = requests.find(r => r.id === id);
       try { await DataService.deleteItem('requests', id); } catch {}
       setRequests(p => p.filter(r => r.id !== id));
-      window.alert('Đã từ chối\nYêu cầu đã bị hủy bỏ.');
+      addNotification('Đã từ chối', 'Yêu cầu đã bị hủy bỏ.', 'warning');
       if (addNotification) {
           const typeLabel = req?.type === 'Đổi ca' || req?.type === 'CHANGE' ? 'đổi ca' : 'nghỉ phép';
           addNotification('Từ chối đơn', `Đã từ chối đơn ${typeLabel} của ${req?.requesterName || 'nhân sự'} ngày ${req?.date || req?.startDate || ''}.`, 'info');
@@ -128,7 +128,7 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
 
   const openActivityModal = (emp) => {
       if (!isAdmin) {
-          window.alert("Quyền hạn\\nChỉ Quản trị viên mới được trực tiếp cập nhật trạng thái nhân sự.");
+          addNotification('Quyền hạn', 'Chỉ Quản trị viên mới được trực tiếp cập nhật trạng thái nhân sự.', 'warning');
           return;
       }
       const today = toYMD(new Date());
@@ -138,7 +138,7 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
 
   const handleSaveActivity = async () => {
       if (!formData.type || !formData.startDate || !formData.endDate) {
-          window.alert('Lỗi\nVui lòng điền đủ thông tin bắt buộc.');
+          addNotification('Lỗi', 'Vui lòng điền đủ thông tin bắt buộc.', 'error');
           return;
       }
       const newAct = {
@@ -156,7 +156,7 @@ export default function TeamsScreen({ currentUser, employees, settings: globalSe
 
   const confirmDeleteActivity = (id) => {
       if (!isAdmin) {
-          window.alert("Quyền hạn\nChỉ Quản trị viên mới được xóa trạng thái nhân sự.");
+          addNotification('Quyền hạn', 'Chỉ Quản trị viên mới được xóa trạng thái nhân sự.', 'warning');
           return;
       }
       setConfirmDialog({

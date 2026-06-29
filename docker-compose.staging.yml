@@ -1,0 +1,15 @@
+# Staging override — dùng với: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+services:
+  backend:
+    environment:
+      NODE_ENV: staging
+    ports:
+      - "3000:3000"   # expose để debug API trực tiếp
+
+  analytics:
+    ports:
+      - "8001:8001"   # expose để test analytics trực tiếp
+
+  nginx:
+    ports:
+      - "80:80"

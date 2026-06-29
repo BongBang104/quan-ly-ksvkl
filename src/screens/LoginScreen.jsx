@@ -44,11 +44,14 @@ export default function LoginScreen({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pendingUser, setPendingUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const err = (msg) => setErrorMsg(msg);
 
   const handleLogin = async () => {
+    setErrorMsg('');
     if (!userId.trim() || !password.trim()) {
-      window.alert('Lỗi\nVui lòng nhập Tài khoản và Mật khẩu.');
-      return;
+      err('Vui lòng nhập Tài khoản và Mật khẩu.'); return;
     }
     setIsLoading(true);
     try {
@@ -63,33 +66,27 @@ export default function LoginScreen({ onLogin }) {
       } else {
         onLogin(data.user);
       }
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 403) {
-        window.alert('Lỗi\nTài khoản chưa được phê duyệt. Vui lòng liên hệ quản trị cấp cao.');
-      } else if (status === 401) {
-        window.alert('Lỗi\nTài khoản hoặc Mật khẩu không chính xác.');
-      } else {
-        window.alert('Lỗi\nKhông thể kết nối máy chủ. Vui lòng kiểm tra cấu hình API URL trong Cài đặt.');
-      }
+    } catch (e) {
+      const status = e.response?.status;
+      if (status === 403) err('Tài khoản chưa được phê duyệt. Vui lòng liên hệ quản trị cấp cao.');
+      else if (status === 401) err('Tài khoản hoặc Mật khẩu không chính xác.');
+      else err('Không thể kết nối máy chủ. Vui lòng kiểm tra cấu hình API URL trong Cài đặt.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSaveSetup = async () => {
+    setErrorMsg('');
     const { valid, message } = validatePassword(newPassword);
-    if (!valid) { window.alert('Lỗi\n' + message); return; }
-    if (newPassword !== confirmPassword) { window.alert('Lỗi\nXác nhận mật khẩu không khớp.'); return; }
+    if (!valid) { err(message); return; }
+    if (newPassword !== confirmPassword) { err('Xác nhận mật khẩu không khớp.'); return; }
     setIsLoading(true);
     try {
-      const { data } = await api.patch(`/api/employees/${pendingUser.id}/password`, {
-        newPassword,
-      });
-      window.alert('Thành công\nCập nhật mật khẩu thành công. Đang chuyển vào hệ thống...');
+      await api.patch(`/api/employees/${pendingUser.id}/password`, { newPassword });
       onLogin({ ...pendingUser, isFirstLogin: false });
     } catch (e) {
-      window.alert('Lỗi\nKhông thể lưu mật khẩu mới. Vui lòng thử lại.');
+      err('Không thể lưu mật khẩu mới. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +111,7 @@ export default function LoginScreen({ onLogin }) {
 
           <Field label="MẬT KHẨU MỚI *" icon="lock" type="password" placeholder="≥8 ký tự, có CHỮ HOA, thường và số" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
           <Field label="XÁC NHẬN MẬT KHẨU *" icon="check-circle" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+          {errorMsg && <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#dc2626', marginBottom: 12 }}>{errorMsg}</div>}
 
           <button type="button" style={S.submitBtn} onClick={handleSaveSetup} disabled={isLoading}>
             {isLoading
@@ -152,6 +150,7 @@ export default function LoginScreen({ onLogin }) {
         {/* Form */}
         <Field label="TÀI KHOẢN ĐĂNG NHẬP" icon="user" placeholder="VD: tctsdn.nguyenvana" value={userId} onChange={e => setUserId(e.target.value)} />
         <Field label="MẬT KHẨU" icon="lock" type="password" placeholder="Nhập mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
+        {errorMsg && <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#dc2626', marginBottom: 12 }}>{errorMsg}</div>}
 
         <button
           type="button"

@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Frontend build ──────────────────────────────────────────────
+  frontend-build:
+    name: Frontend — Vite build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+          retention-days: 1
+
+  # ─── Backend type-check ──────────────────────────────────────────
+  backend-typecheck:
+    name: Backend — TypeScript check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - name: Install deps
+        run: cd backend && npm ci
+      - name: Type check
+        run: cd backend && npx tsc --noEmit
+
+  # ─── Docker build & smoke test ──────────────────────────────────
+  docker-smoke:
+    name: Docker — build + health check
+    runs-on: ubuntu-latest
+    needs: [frontend-build, backend-typecheck]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+      - name: Create .env for CI
+        run: |
+          cp .env.example .env 2>/dev/null || true
+          cat >> .env << 'EOF'
+          DB_USER=postgres
+          DB_PASSWORD=ci_test_password
+          DB_NAME=atc_test
+          JWT_SECRET=ci-test-jwt-secret-minimum-32-characters
+          FRONTEND_URL=http://localhost
+          HIDDEN_ADMIN_ID=tctsvip
+          EOF
+      - name: Build Docker images
+        run: docker compose build
+      - name: Start services
+        run: docker compose up -d
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost/api/health > /dev/null 2>&1; then
+              echo "✓ Backend healthy after ${i} attempts"; exit 0
+            fi
+            echo "Waiting... (attempt $i/24)"; sleep 5
+          done
+          echo "✗ Backend never became healthy"; docker compose logs backend; exit 1
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

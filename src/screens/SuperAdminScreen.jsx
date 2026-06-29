@@ -4,7 +4,7 @@ import api from '../services/ApiService';
 import Icon from '../components/Icon.jsx';
 
 export default function SuperAdminScreen() {
-  const { employees, setEmployees } = useContext(AppContext);
+  const { employees, setEmployees, addNotification } = useContext(AppContext);
   const [loading, setLoading] = useState({});
 
   const admins = employees.filter(e => e.role === 'ADMIN');
@@ -17,7 +17,7 @@ export default function SuperAdminScreen() {
       await api.patch(`/api/employees/${id}/approve`, { isApproved });
       setEmployees(prev => prev.map(e => e.id === id ? { ...e, isApproved } : e));
     } catch {
-      window.alert('Lỗi\nKhông thể cập nhật trạng thái tài khoản.');
+      addNotification('Lỗi', 'Không thể cập nhật trạng thái tài khoản.', 'error');
     } finally {
       setLoading(prev => ({ ...prev, [id]: false }));
     }

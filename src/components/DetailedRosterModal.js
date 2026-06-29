@@ -170,7 +170,7 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
   const handleDraftSave = () => {
       if (!isAdmin) return;
       saveToGlobal('DRAFT');
-      window.alert('Thành công\nĐã lưu nháp bảng phân vị trí lên Cloud.');
+      if (addNotification) addNotification('Thành công', 'Đã lưu nháp bảng phân vị trí lên Cloud.', 'success');
   };
 
   const handleReview = useCallback(async () => {
@@ -183,7 +183,7 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
           });
           setReviewResult(result);
       } catch (e) {
-          window.alert('Lỗi rà soát: ' + (e?.response?.data?.message ?? e.message));
+          if (addNotification) addNotification('Lỗi rà soát', e?.response?.data?.message ?? e.message, 'error');
       } finally {
           setReviewing(false);
       }
@@ -198,13 +198,13 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
           });
           const { renderChecklistHtml } = await import('../utils/checklistHtml.js');
           const w = window.open('', '_blank', 'width=960,height=900');
-          if (!w) { window.alert('Trình duyệt chặn cửa sổ mới. Cho phép pop-up và thử lại.'); return; }
+          if (!w) { if (addNotification) addNotification('Thông báo', 'Trình duyệt chặn cửa sổ mới. Cho phép pop-up và thử lại.', 'warning'); return; }
           w.document.title = `Checklist — ${team} ${currentDate} ${currentShift}`;
           w.document.body.innerHTML = renderChecklistHtml(checklist);
           w.document.close();
           setTimeout(() => w.print(), 500);
       } catch (e) {
-          window.alert('Lỗi sinh checklist: ' + (e?.response?.data?.message ?? e.message));
+          if (addNotification) addNotification('Lỗi sinh checklist', e?.response?.data?.message ?? e.message, 'error');
       } finally {
           setExportingChecklist(false);
       }
@@ -250,7 +250,7 @@ export default function DetailedRosterModal({ team, isOpen, onClose, employees, 
                   'info'
               );
           }
-          window.alert('Thành công\n' + `Đã chốt bảng và phát thông báo đến ${assignedCount} KSVKL có liên quan.`);
+          if (addNotification) addNotification('Thành công', `Đã chốt bảng và phát thông báo đến ${assignedCount} KSVKL có liên quan.`, 'success');
       };
 
       if (warnings.length > 0) {

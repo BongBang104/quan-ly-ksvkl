@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 
 
 
-export default function TaskFormModal({ isOpen, onClose, onSave, settings, employees, currentUser }) {
+export default function TaskFormModal({ isOpen, onClose, onSave, settings, employees, currentUser, addNotification }) {
   // PHÂN QUYỀN CỨNG NHẮC DỰA VÀO CƠ SỞ DỮ LIỆU
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'superadmin';
   const isLeader = currentUser?.role === 'CHIEF';
@@ -43,7 +43,7 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
 
   const handleSave = () => {
     if (!title.trim() || !content.trim()) {
-      window.alert('Lỗi\nVui lòng nhập đầy đủ Tiêu đề và Nội dung.');
+      if (addNotification) addNotification('Lỗi', 'Vui lòng nhập đầy đủ Tiêu đề và Nội dung.', 'error');
     }
 
     let finalTargetIds = [];
@@ -58,7 +58,7 @@ export default function TaskFormModal({ isOpen, onClose, onSave, settings, emplo
         finalTargetIds = [...new Set([...teamIds, ...selectedEmps])];
 
         if (finalTargetIds.length === 0) {
-            window.alert('Lỗi\nVui lòng chỉ định ít nhất 1 Kíp hoặc 1 Cá nhân nhận.');
+            if (addNotification) addNotification('Lỗi', 'Vui lòng chỉ định ít nhất 1 Kíp hoặc 1 Cá nhân nhận.', 'error');
             return;
         }
         notifMessage = `${currentUser?.name} (${isAdmin ? 'Lãnh đạo' : 'Kíp trưởng'}) vừa ban hành ${type === 'REPORT' ? 'Báo cáo' : type === 'DEBRIEF' ? 'Bình giảng' : 'Nhiệm vụ'}: "${title.trim()}"`;

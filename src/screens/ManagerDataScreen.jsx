@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 
 import { DataService } from '../services/DataService';
 
-export default function ManagerDataScreen({ employees, setEmployees, settings, onUpdateEmployeeId }) {
+export default function ManagerDataScreen({ employees, setEmployees, settings, onUpdateEmployeeId, addNotification }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -65,7 +65,7 @@ export default function ManagerDataScreen({ employees, setEmployees, settings, o
 
     const handleSaveProfile = async () => {
         if (!formData.name.trim()) {
-            window.alert('Thiếu thông tin\nVui lòng nhập Họ tên nhân sự.');
+            addNotification('Thiếu thông tin', 'Vui lòng nhập Họ tên nhân sự.', 'warning');
             return;
         }
 
@@ -91,7 +91,7 @@ export default function ManagerDataScreen({ employees, setEmployees, settings, o
                     };
                 }
             } else {
-                window.alert('Lưu ý\nVui lòng sang tab Quản lý Tài Khoản để tạo nhân sự mới.');
+                addNotification('Lưu ý', 'Vui lòng sang tab Quản lý Tài Khoản để tạo nhân sự mới.', 'info');
                 setIsSaving(false);
                 return;
             }
@@ -101,7 +101,7 @@ export default function ManagerDataScreen({ employees, setEmployees, settings, o
             setEmployees(updatedList);
             setIsModalOpen(false);
         } catch (error) {
-            window.alert("Lỗi\nKhông thể kết nối máy chủ để lưu dữ liệu.");
+            addNotification('Lỗi', 'Không thể kết nối máy chủ để lưu dữ liệu.', 'error');
             console.error(error);
         } finally {
             setIsSaving(false);

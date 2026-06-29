@@ -702,11 +702,11 @@ export default function DashboardScreen({ onNavigateTo } = {}) {
       try { await DataService.createItem('activities', act1); await DataService.createItem('activities', act2); } catch {}
       if (setActivities) setActivities(prev => [...prev, act1, act2]);
       addNotification('Phê duyệt Đổi ca', `Đơn đổi ca${shiftInfo} giữa ${req.requesterName} và ${req.targetEmpName} ngày ${req.date} đã được duyệt hoàn tất.`, 'info');
-      window.alert("Hoàn tất\nĐã duyệt xong! Lịch trực và Danh sách Quản lý Kíp đã được tự động cập nhật.");
+      addNotification('Hoàn tất', 'Đã duyệt xong! Lịch trực và Danh sách Quản lý Kíp đã được tự động cập nhật.', 'success');
     } else {
       const shiftInfo = req.shiftCode ? ` ca ${req.shiftCode}` : '';
       addNotification('Tiến độ Đổi ca', `Kíp trưởng ${userTeam} đã duyệt đơn đổi ca${shiftInfo} của ${req.requesterName} ngày ${req.date}. Đang chờ kíp đích xác nhận.`, 'info');
-      window.alert("Thành công\nĐã duyệt. Chờ Kíp trưởng đích xác nhận.");
+      addNotification('Thành công', 'Đã duyệt. Chờ Kíp trưởng đích xác nhận.', 'success');
     }
   };
 
