@@ -5,6 +5,7 @@ import { Roles }        from '../auth/roles.decorator';
 import { TasksService } from './tasks.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PushService }          from '../push/push.service';
+import { UpsertTaskDto }        from './dto/upsert-task.dto';
 
 @Controller('api/tasks')
 export class TasksController {
@@ -31,8 +32,8 @@ export class TasksController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  async create(@Body() body: any) {
-    const task = await this.svc.upsertOne(body);
+  async create(@Body() dto: UpsertTaskDto) {
+    const task = await this.svc.upsertOne(dto);
     this.notify.broadcastNotification('task:new', { id: task.id, title: task.title, targetEmpIds: task.targetEmpIds });
     const targets = Array.isArray(task.targetEmpIds) && task.targetEmpIds.length
       ? task.targetEmpIds
@@ -45,9 +46,9 @@ export class TasksController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() body: any) {
-    const prevCommentCount = Array.isArray(body.comments) ? body.comments.length : 0;
-    const task = await this.svc.upsertOne({ ...body, id });
+  async update(@Param('id') id: string, @Body() dto: UpsertTaskDto) {
+    const prevCommentCount = Array.isArray(dto.comments) ? dto.comments.length : 0;
+    const task = await this.svc.upsertOne({ ...dto, id });
     const newCommentCount = Array.isArray(task.comments) ? task.comments.length : 0;
     this.notify.broadcastNotification('task:updated', {
       id: task.id,

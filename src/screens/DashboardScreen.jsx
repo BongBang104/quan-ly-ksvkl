@@ -28,6 +28,7 @@ const D = {
     padding: '18px 24px',
     marginBottom: 16,
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
@@ -91,6 +92,7 @@ const D = {
   },
   cardHead: {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '13px 18px',
@@ -99,6 +101,7 @@ const D = {
   },
   cardTitle: {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     fontSize: 13,
@@ -109,6 +112,7 @@ const D = {
   cardBody: { padding: '14px 18px' },
   rowItem: {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: '10px 0',
@@ -117,7 +121,7 @@ const D = {
   avatar: (color = '#2563eb', size = 36) => ({
     width: size, height: size,
     borderRadius: Math.floor(size * 0.3),
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
     fontSize: Math.floor(size * 0.4), fontWeight: 700, color: '#fff',
     background: color,
@@ -145,14 +149,14 @@ const D = {
     border: '1px solid #e2e8f0', cursor: 'pointer', flexShrink: 0,
   },
   quickTile: {
-    display: 'flex', alignItems: 'center', gap: 12,
+    display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: '12px 14px', borderRadius: 10,
     cursor: 'pointer', border: '1px solid #e8edf2',
     backgroundColor: '#fff', textDecoration: 'none',
   },
   quickTileIcon: (bg) => ({
     width: 38, height: 38, borderRadius: 10,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, backgroundColor: bg,
   }),
   empty: {
@@ -175,29 +179,29 @@ function HeaderBar({ name, role, team, currentTime, urgentCount = 0 }) {
   return (
     <div style={D.header}>
       <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 46, height: 46, borderRadius: 13, background: 'linear-gradient(135deg, rgba(37,99,235,.4), rgba(99,102,241,.3))', border: '1px solid rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 46, height: 46, borderRadius: 13, background: 'linear-gradient(135deg, rgba(37,99,235,.4), rgba(99,102,241,.3))', border: '1px solid rgba(255,255,255,.15)', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
           {name?.charAt(0) || 'U'}
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', marginBottom: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>ATC Pro — Trung tâm KSTC-TS Đà Nẵng</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{name}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+        <div style={{ display: 'block' }}>
+          <div style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,.45)', marginBottom: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>ATC Pro — Trung tâm KSTC-TS Đà Nẵng</div>
+          <div style={{ display: 'block', fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{name}</div>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, backgroundColor: roleColor + '30', color: roleColor, border: `1px solid ${roleColor}50`, letterSpacing: '0.04em' }}>{roleLabel}</span>
             {team && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>{team}</span>}
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {urgentCount > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.35)', padding: '7px 14px', borderRadius: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 7, background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.35)', padding: '7px 14px', borderRadius: 10 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#f87171', boxShadow: '0 0 0 3px rgba(239,68,68,.3)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: '#fca5a5' }}>{urgentCount} cần xử lý</span>
           </div>
         )}
-        <div style={{ backgroundColor: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', padding: '8px 16px', borderRadius: 10, textAlign: 'right' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.05em' }}>{displayTime}</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>{displayDate}</div>
+        <div style={{ backgroundColor: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', padding: '8px 16px', borderRadius: 10, textAlign: 'right', display: 'block' }}>
+          <div style={{ display: 'block', fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.05em' }}>{displayTime}</div>
+          <div style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>{displayDate}</div>
         </div>
       </div>
     </div>
@@ -211,7 +215,7 @@ function OperationalStatusBar({ urgentCount, pendingCount }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ ...D.statusBar, background: colors[level] }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: level === 'ok' ? '#16a34a' : level === 'warn' ? '#d97706' : '#dc2626' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: level === 'ok' ? '#16a34a' : level === 'warn' ? '#d97706' : '#dc2626' }}>
         <span>{labels[level]}</span>
       </div>
     </div>
@@ -233,12 +237,12 @@ function AdminStatGrid({ data, employees, requests }) {
       {stats.map(s => (
         <div key={s.label} style={{ ...D.statCard, borderBottom: `3px solid ${s.color}`, minWidth: 0 }}>
           {s.urgent && <div style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,.25)' }} />}
-          <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: s.bg, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <Icon name={s.icon} size={17} color={s.color} />
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{s.label}</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{s.sub}</div>
+          <div style={{ display: 'block', fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+          <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{s.label}</div>
+          <div style={{ display: 'block', fontSize: 11, color: '#94a3b8' }}>{s.sub}</div>
         </div>
       ))}
     </div>
@@ -252,17 +256,17 @@ function DutyRosterWidget({ members, team }) {
         <div style={D.cardTitle}><Icon name="activity" size={14} color="#16a34a" />Đang trực — Kíp {team}</div>
         <span style={D.badge('#f0fdf4', '#16a34a', '#bbf7d0')}>{members.length} người</span>
       </div>
-      <div style={{ ...D.cardBody, padding: '6px 18px', maxHeight: 340, overflowY: 'auto' }}>
+      <div style={{ ...D.cardBody, padding: '4px 18px', maxHeight: 360, overflowY: 'auto' }}>
         {members.length === 0 ? (
           <div style={D.empty}><Icon name="moon" size={24} color="#cbd5e1" />Không có ca trực trong ca này</div>
         ) : members.map(emp => (
-          <div key={emp.id} style={D.rowItem}>
-            <div style={D.avatar(emp.isChief ? '#7c3aed' : '#2563eb', 36)}>{emp.name.charAt(0)}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {emp.name}{emp.isChief && <Icon name="star" size={11} color="#f59e0b" style={{ marginLeft: 4 }} />}
+          <div key={emp.id} style={{ ...D.rowItem, padding: '9px 0', borderBottom: '1px solid #eef0f3' }}>
+            <div style={D.avatar(emp.isChief ? '#7c3aed' : '#2563eb', 32)}>{emp.name.charAt(0)}</div>
+            <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+              <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {emp.name}{emp.isChief && <Icon name="star" size={10} color="#f59e0b" style={{ marginLeft: 3 }} />}
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{emp.qualification || 'KSVKL'} · {emp.icaoCode || '—'}</div>
+              <div style={{ display: 'block', fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{emp.qualification || 'KSVKL'}{emp.icaoCode ? ` · ${emp.icaoCode}` : ''}</div>
             </div>
             <span style={D.badge('#f1f5f9', '#475569', '#e2e8f0')}>{emp.position?.split(' ')[0] || 'KSV'}</span>
           </div>
@@ -286,13 +290,13 @@ function PendingRequestsWidget({ requests, onNavigateTo }) {
         {pending.length === 0 ? (
           <div style={D.empty}><Icon name="check-circle" size={22} color="#10b981" />Không có đơn nào chờ duyệt</div>
         ) : pending.map(req => (
-          <div key={req.id} style={D.rowItem}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: req.type === 'Đổi ca' ? '#eff6ff' : '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name={req.type === 'Đổi ca' ? 'repeat' : 'calendar-off'} size={14} color={req.type === 'Đổi ca' ? '#2563eb' : '#7c3aed'} />
+          <div key={req.id} style={{ ...D.rowItem, borderBottom: '1px solid #eef0f3' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: req.type === 'Đổi ca' ? '#eff6ff' : '#f5f3ff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name={req.type === 'Đổi ca' ? 'repeat' : 'calendar-off'} size={13} color={req.type === 'Đổi ca' ? '#2563eb' : '#7c3aed'} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.requesterName} — {req.type}</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{req.date}</div>
+            <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+              <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.requesterName} — {req.type}</div>
+              <div style={{ display: 'block', fontSize: 10, color: '#64748b', marginTop: 2 }}>{req.date}</div>
             </div>
             <span style={D.badge('#fffbeb', '#d97706', '#fde68a')}>Chờ</span>
           </div>
@@ -348,13 +352,13 @@ function AbsenceWidget({ leaves, employees, settings }) {
           const emp = employees.find(e => e.id === act.empId);
           const conf = getConf(act.type);
           return (
-            <div key={act.id || i} style={D.rowItem}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: conf.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={conf.icon} size={14} color={conf.text} />
+            <div key={act.id || i} style={{ ...D.rowItem, borderBottom: '1px solid #eef0f3' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: conf.bg, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={conf.icon} size={13} color={conf.text} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{emp?.name || act.empId}</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>{emp?.team || '—'}</div>
+              <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+                <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp?.name || act.empId}</div>
+                <div style={{ display: 'block', fontSize: 10, color: '#64748b', marginTop: 2 }}>{emp?.team || '—'}</div>
               </div>
               <span style={D.badge(conf.bg, conf.text, conf.bg)}>{conf.label}</span>
             </div>
@@ -378,14 +382,14 @@ function SmsProgressWidget({ reports }) {
           const pct = sms.total > 0 ? Math.round((sms.ack / sms.total) * 100) : 0;
           return (
             <div key={sms.id || i} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{sms.time}</span>
                 <span style={D.badge(isDone ? '#f0fdf4' : '#fffbeb', isDone ? '#16a34a' : '#d97706', isDone ? '#bbf7d0' : '#fde68a')}>
                   {isDone ? 'Hoàn tất' : 'Đang chờ'}
                 </span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>{sms.title}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>{sms.title}</div>
+              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 11, color: '#64748b' }}>Đã báo nhận:</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: isDone ? '#16a34a' : '#d97706' }}>{sms.ack} / {sms.total}</span>
               </div>
@@ -427,27 +431,27 @@ function NextShiftWidget({ shift, onOpenRoster }) {
   const accentColor = shift.isToday ? '#2563eb' : '#16a34a';
   return (
     <div style={{ ...D.card, border: `1px solid ${accentColor}30` }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: shift.isToday ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderBottom: `1px solid ${accentColor}20` }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: accentColor, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{shift.isToday ? '🟢 Hôm nay' : '📅 Sắp tới'}</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{shift.shiftName}</div>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: shift.isToday ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderBottom: `1px solid ${accentColor}20` }}>
+        <div style={{ display: 'block' }}>
+          <div style={{ display: 'block', fontSize: 10, fontWeight: 700, color: accentColor, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{shift.isToday ? '🟢 Hôm nay' : '📅 Sắp tới'}</div>
+          <div style={{ display: 'block', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{shift.shiftName}</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: accentColor, fontFamily: "'JetBrains Mono', monospace" }}>{shift.dateDisplay}</div>
+        <div style={{ display: 'block', textAlign: 'right' }}>
+          <div style={{ display: 'block', fontSize: 24, fontWeight: 800, color: accentColor, fontFamily: "'JetBrains Mono', monospace" }}>{shift.dateDisplay}</div>
           {countdown && (
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', backgroundColor: '#fffbeb', padding: '2px 8px', borderRadius: 4, marginTop: 4, border: '1px solid #fde68a' }}>⏱ {countdown}</div>
+            <div style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#f59e0b', backgroundColor: '#fffbeb', padding: '2px 8px', borderRadius: 4, marginTop: 4, border: '1px solid #fde68a' }}>⏱ {countdown}</div>
           )}
         </div>
       </div>
       <div style={D.cardBody}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Thời gian</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace" }}>{shift.time}</div>
+            <div style={{ display: 'block', fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Thời gian</div>
+            <div style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace" }}>{shift.time}</div>
           </div>
           <div style={{ padding: '10px 12px', backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #dcfce7' }}>
-            <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Vị trí</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{shift.position}</div>
+            <div style={{ display: 'block', fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Vị trí</div>
+            <div style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{shift.position}</div>
           </div>
         </div>
         <button type="button" onClick={onOpenRoster} style={{ ...D.btnPrimary, width: '100%', justifyContent: 'center' }}>
@@ -477,8 +481,8 @@ function WeekCalendarStrip({ myEmpId, scheduleData, settings, todayObj }) {
           const sc = shiftColors[shiftCode];
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 2px', borderRadius: 8, backgroundColor: isToday ? '#0f172a' : 'transparent', border: isToday ? 'none' : '1px solid #f1f5f9', minWidth: 0, overflow: 'hidden' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: isToday ? 'rgba(255,255,255,.6)' : '#94a3b8' }}>{dayLabel}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: isToday ? '#fff' : '#374151' }}>{d.getDate()}</div>
+              <div style={{ display: 'block', fontSize: 10, fontWeight: 600, color: isToday ? 'rgba(255,255,255,.6)' : '#94a3b8' }}>{dayLabel}</div>
+              <div style={{ display: 'block', fontSize: 15, fontWeight: 700, color: isToday ? '#fff' : '#374151' }}>{d.getDate()}</div>
               {shiftCode ? (
                 <div style={{ fontSize: 9, fontWeight: 700, padding: '2px 4px', borderRadius: 4, backgroundColor: isToday ? 'rgba(255,255,255,.2)' : (sc?.bg || '#f1f5f9'), color: isToday ? '#fff' : (sc?.text || '#475569') }}>{shiftCode}</div>
               ) : (
@@ -515,15 +519,15 @@ function ChiefApprovalWidget({ requests, userTeam, onApprove }) {
       <div style={{ ...D.cardBody, padding: '8px 18px' }}>
         {pending.map(req => (
           <div key={req.id} style={{ padding: '12px 0', borderBottom: '1px solid #fef3c7' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <div>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div style={{ display: 'block' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#dc2626' }}>{req.requesterName}</span>
                 <span style={{ fontSize: 12, color: '#64748b' }}> ↔ </span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#2563eb' }}>{req.targetEmpName}</span>
               </div>
               <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: '#475569' }}>{req.date}</span>
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>{req.reason}</div>
+            <div style={{ display: 'block', fontSize: 11, color: '#64748b', marginBottom: 10 }}>{req.reason}</div>
             <button type="button" onClick={() => onApprove(req.id)} style={{ ...D.btnPrimary, backgroundColor: '#16a34a', fontSize: 11, padding: '6px 14px' }}>
               <Icon name="check" size={12} color="#fff" />Phê duyệt
             </button>
@@ -548,9 +552,9 @@ function ChiefQuickActions({ onNavigateTo }) {
         {actions.map(a => (
           <button key={a.label} type="button" onClick={() => onNavigateTo?.(a.nav, a.subTab)} style={{ ...D.quickTile, width: '100%', textAlign: 'left' }}>
             <div style={D.quickTileIcon(a.color)}><Icon name={a.icon} size={16} color={a.iconColor} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{a.label}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{a.desc}</div>
+            <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+              <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label}</div>
+              <div style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{a.desc}</div>
             </div>
             <Icon name="chevron-right" size={14} color="#cbd5e1" />
           </button>
@@ -574,9 +578,9 @@ function StaffQuickActions({ onNavigateTo }) {
         {actions.map(a => (
           <button key={a.label} type="button" onClick={() => onNavigateTo?.(a.nav, a.subTab)} style={{ ...D.quickTile, width: '100%', textAlign: 'left' }}>
             <div style={D.quickTileIcon(a.color)}><Icon name={a.icon} size={16} color={a.iconColor} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{a.label}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{a.desc}</div>
+            <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+              <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label}</div>
+              <div style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{a.desc}</div>
             </div>
             <Icon name="chevron-right" size={14} color="#cbd5e1" />
           </button>
@@ -597,7 +601,7 @@ function MyRequestsWidget({ requests, myEmpId, onNavigateTo }) {
     <div style={D.card}>
       <div style={D.cardHead}>
         <div style={D.cardTitle}><Icon name="file-text" size={14} color="#475569" />Đơn từ của tôi</div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 6 }}>
           <button onClick={() => onNavigateTo?.('ANALYTICS', 'exchange')} style={{ ...D.btnGhost, fontSize: 11, padding: '4px 10px' }}>
             <Icon name="repeat" size={11} color="#475569" />Đổi ca
           </button>
@@ -614,12 +618,12 @@ function MyRequestsWidget({ requests, myEmpId, onNavigateTo }) {
             {mine.map(req => {
               const sm = statusMeta(req.status);
               return (
-                <div key={req.id} style={D.rowItem}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div key={req.id} style={{ ...D.rowItem, borderBottom: '1px solid #eef0f3' }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden' }}>
+                    <div style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {req.type}{req.type === 'Đổi ca' && <span style={{ color: '#2563eb' }}> ↔ {req.targetEmpName}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{req.date}{req.shiftCode ? ` · Ca ${req.shiftCode}` : ''}</div>
+                    <div style={{ display: 'block', fontSize: 10, color: '#64748b', marginTop: 2 }}>{req.date}{req.shiftCode ? ` · Ca ${req.shiftCode}` : ''}</div>
                   </div>
                   <span style={D.badge(sm.bg, sm.text, sm.border)}>{sm.label}</span>
                 </div>
@@ -856,32 +860,32 @@ export default function DashboardScreen({ onNavigateTo } = {}) {
         <div style={D.statGrid}>
           <div style={{ ...D.statCard, borderBottom: '3px solid #2563eb' }}>
             <div style={{ ...D.avatar('#2563eb', 36), marginBottom: 12 }}><Icon name="calendar" size={16} color="#fff" /></div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{myNextShift?.dateDisplay || '—'}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{myNextShift?.shiftName || 'Chưa có lịch'}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{myNextShift?.isToday ? 'Hôm nay' : 'Ca tiếp theo'}</div>
+            <div style={{ display: 'block', fontSize: 20, fontWeight: 800, color: '#0f172a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{myNextShift?.dateDisplay || '—'}</div>
+            <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{myNextShift?.shiftName || 'Chưa có lịch'}</div>
+            <div style={{ display: 'block', fontSize: 11, color: '#94a3b8' }}>{myNextShift?.isToday ? 'Hôm nay' : 'Ca tiếp theo'}</div>
           </div>
 
           <div style={{ ...D.statCard, borderBottom: '3px solid #16a34a' }}>
             <div style={{ ...D.avatar('#16a34a', 36), marginBottom: 12 }}><Icon name="map-pin" size={16} color="#fff" /></div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#16a34a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{myNextShift?.position?.split(' ')[0] || '—'}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Vị trí phân công</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{myNextShift?.time || '—'}</div>
+            <div style={{ display: 'block', fontSize: 16, fontWeight: 800, color: '#16a34a', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{myNextShift?.position?.split(' ')[0] || '—'}</div>
+            <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Vị trí phân công</div>
+            <div style={{ display: 'block', fontSize: 11, color: '#94a3b8' }}>{myNextShift?.time || '—'}</div>
           </div>
 
           <div style={{ ...D.statCard, borderBottom: `3px solid ${pendingCount > 0 ? '#d97706' : '#10b981'}` }}>
             <div style={{ ...D.avatar(pendingCount > 0 ? '#d97706' : '#10b981', 36), marginBottom: 12 }}><Icon name={pendingCount > 0 ? 'clock' : 'check-circle'} size={16} color="#fff" /></div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: pendingCount > 0 ? '#d97706' : '#10b981', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{pendingCount}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Đơn đang chờ</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>yêu cầu của tôi</div>
+            <div style={{ display: 'block', fontSize: 28, fontWeight: 800, color: pendingCount > 0 ? '#d97706' : '#10b981', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{pendingCount}</div>
+            <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Đơn đang chờ</div>
+            <div style={{ display: 'block', fontSize: 11, color: '#94a3b8' }}>yêu cầu của tôi</div>
           </div>
 
           {isChief && (
             <div style={{ ...D.statCard, borderBottom: `3px solid ${urgentCount > 0 ? '#dc2626' : '#10b981'}` }}>
               {urgentCount > 0 && <div style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,.2)' }} />}
               <div style={{ ...D.avatar(urgentCount > 0 ? '#dc2626' : '#10b981', 36), marginBottom: 12 }}><Icon name="bell" size={16} color="#fff" /></div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: urgentCount > 0 ? '#dc2626' : '#10b981', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{urgentCount}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Đổi ca cần duyệt</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>kíp của tôi</div>
+              <div style={{ display: 'block', fontSize: 28, fontWeight: 800, color: urgentCount > 0 ? '#dc2626' : '#10b981', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, marginBottom: 4 }}>{urgentCount}</div>
+              <div style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>Đổi ca cần duyệt</div>
+              <div style={{ display: 'block', fontSize: 11, color: '#94a3b8' }}>kíp của tôi</div>
             </div>
           )}
         </div>

@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "reset-superadmin": "ts-node --project tsconfig.json scripts/reset-superadmin.ts",
-    "migrate":          "ts-node --project tsconfig.json scripts/run-migration.ts"
+    "migrate": "ts-node --project tsconfig.json scripts/run-migration.ts"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -41,6 +41,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "nest-winston": "^1.10.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.3",
@@ -48,7 +49,8 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.4",
     "typeorm": "^0.3.20",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",
@@ -57,8 +59,10 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/sanitize-html": "^2.16.1",
     "dotenv": "^17.4.2",
     "jest": "^30.4.2",
+    "sanitize-html": "^2.17.5",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

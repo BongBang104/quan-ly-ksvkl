@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShiftHandover } from './shift-handover.entity';
+import { sanitize } from '../common/sanitize.util';
 
 @Injectable()
 export class ShiftHandoversService {
@@ -20,7 +21,13 @@ export class ShiftHandoversService {
 
   async update(id: string, data: Partial<ShiftHandover>): Promise<ShiftHandover> {
     const hw = await this.repo.findOneByOrFail({ id });
-    Object.assign(hw, data);
+    Object.assign(hw, {
+      ...data,
+      weather:   data.weather   !== undefined ? sanitize(data.weather)   : hw.weather,
+      equipment: data.equipment !== undefined ? sanitize(data.equipment) : hw.equipment,
+      situation: data.situation !== undefined ? sanitize(data.situation) : hw.situation,
+      traffic:   data.traffic   !== undefined ? sanitize(data.traffic)   : hw.traffic,
+    });
     return this.repo.save(hw);
   }
 

@@ -2,6 +2,7 @@ import {
   Controller, Post, Body, HttpCode, HttpStatus,
   Patch, Param, UseGuards, Request, ForbiddenException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService }       from './auth.service';
 import { JwtAuthGuard }      from './jwt-auth.guard';
 import { LoginDto }          from './dto/login.dto';
@@ -13,6 +14,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ global: { ttl: 60_000, limit: 10 } })
   login(@Body() body: LoginDto, @Request() req: any) {
     const ip        = req.ip || req.headers['x-forwarded-for'];
     const userAgent = req.headers['user-agent'];

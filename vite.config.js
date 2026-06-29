@@ -22,5 +22,15 @@ export default defineConfig({
         '.jsx': 'jsx'
       }
     }
-  }
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 });

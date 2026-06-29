@@ -1,22 +1,34 @@
 import Spinner from "./src/components/Spinner.jsx";
 import Modal from './src/components/Modal.jsx';
 import Icon from './src/components/Icon.jsx';
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, Suspense, lazy } from 'react';
 
 import { AppProvider, AppContext } from './src/context/AppContext.jsx';
+import ScreenErrorBoundary from './src/components/ScreenErrorBoundary.jsx';
 import LoginScreen from './src/screens/LoginScreen.jsx';
 import DashboardScreen from './src/screens/DashboardScreen.jsx';
-import SchedulerScreen from './src/screens/SchedulerScreen.jsx';
-import TeamsScreen from './src/screens/TeamsScreen.jsx';
-import ManagerDataScreen from './src/screens/ManagerDataScreen.jsx';
-import StatsScreen from './src/screens/StatsScreen.jsx';
-import AccountManagerScreen from './src/screens/AccountManagerScreen.jsx';
-import SettingsScreen from './src/screens/SettingsScreen.jsx';
-import SuperAdminScreen from './src/screens/SuperAdminScreen.jsx';
-import AnalyticsScreen from './src/screens/AnalyticsScreen.jsx';
-import AuditLogScreen from './src/screens/AuditLogScreen.jsx';
 import NotificationLogModal from './src/components/NotificationLogModal.jsx';
 import NotificationPermissionBanner from './src/components/NotificationPermissionBanner.jsx';
+
+// Heavy screens: lazy-loaded to reduce initial bundle
+const SchedulerScreen     = lazy(() => import('./src/screens/SchedulerScreen.jsx'));
+const TeamsScreen         = lazy(() => import('./src/screens/TeamsScreen.jsx'));
+const ManagerDataScreen   = lazy(() => import('./src/screens/ManagerDataScreen.jsx'));
+const StatsScreen         = lazy(() => import('./src/screens/StatsScreen.jsx'));
+const AnalyticsScreen     = lazy(() => import('./src/screens/AnalyticsScreen.jsx'));
+const AccountManagerScreen = lazy(() => import('./src/screens/AccountManagerScreen.jsx'));
+const SettingsScreen      = lazy(() => import('./src/screens/SettingsScreen.jsx'));
+const SuperAdminScreen    = lazy(() => import('./src/screens/SuperAdminScreen.jsx'));
+const AuditLogScreen      = lazy(() => import('./src/screens/AuditLogScreen.jsx'));
+
+function ScreenLoader() {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <Spinner size="large" color="#3b82f6" />
+      <span style={{ fontSize: 13, color: '#94a3b8' }}>Đang tải…</span>
+    </div>
+  );
+}
 
 /* ─── Styles ─────────────────────────────────────────────────── */
 const S = {
@@ -401,7 +413,11 @@ function MainApp() {
         {/* ══ CONTENT ══════════════════════════════════════════ */}
         <div style={S.contentArea}>
           <div className="screen-enter" key={activeTab} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {renderScreen()}
+            <ScreenErrorBoundary>
+              <Suspense fallback={<ScreenLoader />}>
+                {renderScreen()}
+              </Suspense>
+            </ScreenErrorBoundary>
           </div>
           <NotificationLogModal
             isOpen={isNotifOpen}

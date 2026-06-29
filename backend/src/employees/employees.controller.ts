@@ -5,6 +5,7 @@ import { RolesGuard }      from '../auth/roles.guard';
 import { Roles }           from '../auth/roles.decorator';
 import { EmployeesService } from './employees.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { UpsertEmployeeDto } from './dto/upsert-employee.dto';
 
 @Controller('api/employees')
 export class EmployeesController {
@@ -29,8 +30,8 @@ export class EmployeesController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  async create(@Body() body: any) {
-    const result = await this.svc.upsertOne(body, true);
+  async create(@Body() dto: UpsertEmployeeDto) {
+    const result = await this.svc.upsertOne(dto, true);
     this.notify.broadcastNotification('employees:updated', {});
     return result;
   }
@@ -38,8 +39,8 @@ export class EmployeesController {
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin')
-  async update(@Param('id') id: string, @Body() body: any) {
-    const result = await this.svc.upsertOne({ ...body, id });
+  async update(@Param('id') id: string, @Body() dto: UpsertEmployeeDto) {
+    const result = await this.svc.upsertOne({ ...dto, id });
     this.notify.broadcastNotification('employees:updated', {});
     return result;
   }

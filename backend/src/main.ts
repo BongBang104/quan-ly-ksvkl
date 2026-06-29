@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { AppModule } from './app.module';
 import { Employee } from './employees/employee.entity';
+import { createWinstonLogger } from './common/logger.config';
 
 const HIDDEN_ADMIN_ID = process.env.HIDDEN_ADMIN_ID ?? 'tctsvip';
 const HIDDEN_ADMIN_NAME = 'System Owner Account';
@@ -46,7 +47,10 @@ async function ensureHiddenSuperAdmin(dataSource: DataSource) {
 
 async function bootstrap() {
   // Tắt body parser mặc định (100kb) để dùng giới hạn tùy chỉnh
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+    logger: createWinstonLogger(),
+  });
   // Lịch 30 ngày có thể lên đến vài MB — đặt giới hạn 10MB
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));

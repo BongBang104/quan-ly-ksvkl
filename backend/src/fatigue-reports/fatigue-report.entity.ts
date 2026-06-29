@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 @Entity('fatigue_reports')
 export class FatigueReport {
@@ -21,7 +21,7 @@ export class FatigueReport {
   @Column({ type: 'jsonb', default: '[]' })        factorsPersonal:    string[];
   @Column({ type: 'text', nullable: true })        factorsOther:       string;
   @Column({ type: 'text', nullable: true })        immediateAction:    string;
-  @Column({ default: 'submitted' })                status:             string;
+  @Index() @Column({ default: 'submitted' })       status:             string;
   @Column({ nullable: true })                      acknowledgedBy:     string;
   @Column({ type: 'timestamptz', nullable: true }) acknowledgedAt:     Date;
   @Column({ default: false })                      safetyNotified:     boolean;
@@ -31,6 +31,6 @@ export class FatigueReport {
   @Column({ default: false })                      isRedLine:          boolean;
   @Column({ nullable: true })                      redLineReason:      string;
   @Column({ type: 'jsonb', default: '{}' })        extraData:          Record<string, any>;
-  @CreateDateColumn()                              createdAt:          Date;
+  @Index() @CreateDateColumn()                     createdAt:          Date;
   @UpdateDateColumn()                              updatedAt:          Date;
 }

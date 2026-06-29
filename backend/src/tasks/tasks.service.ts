@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository }       from 'typeorm';
 import { Task }             from './task.entity';
+import { sanitizePlain, sanitize } from '../common/sanitize.util';
 
 const DEFAULT_TEAM = 'ALL';
 
@@ -67,8 +68,8 @@ export class TasksService {
     return {
       id:             raw.id,
       team,
-      title:          raw.title,
-      description:    raw.description ?? raw.content,
+      title:          sanitizePlain(raw.title),
+      description:    sanitize(raw.description ?? raw.content),
       priority:       raw.priority ?? 'normal',
       status:         raw.status ?? 'PUBLISHED',
       assignedTo:     raw.assignedTo,

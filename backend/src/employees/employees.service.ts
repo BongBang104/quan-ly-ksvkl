@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not }   from 'typeorm';
+import { DataSource, Repository, Not } from 'typeorm';
 import * as bcrypt           from 'bcrypt';
 import { Employee }          from './employee.entity';
 
@@ -14,6 +14,7 @@ export class EmployeesService {
   constructor(
     @InjectRepository(Employee)
     private readonly repo: Repository<Employee>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(): Promise<{ list: Omit<Employee, 'password'>[] }> {
@@ -29,11 +30,9 @@ export class EmployeesService {
   async replaceAll(list: any[]): Promise<{ list: any[]; passwords: Record<string, string> }> {
     const passwords: Record<string, string> = {};
 
-    // Snapshot existing passwords before delete
+    // Snapshot existing passwords before transaction (read outside is fine)
     const existingEmps = await this.repo.find({ where: { role: Not('superadmin') } });
     const existingPwMap = new Map(existingEmps.map(e => [e.id, e.password]));
-
-    await this.repo.delete({ role: Not('superadmin') });
 
     const filtered = list
       .filter(e => e.role !== 'superadmin')
@@ -45,21 +44,28 @@ export class EmployeesService {
     const hashed = await Promise.all(
       filtered.map(async e => {
         if (existingPwMap.has(e.id)) {
-          // Existing employee — keep their current password, preserve isFirstLogin state
           return { ...e, password: existingPwMap.get(e.id) };
         }
-        // New employee — generate random password
         const plain = this.generatePassword();
         passwords[e.id] = plain;
         return { ...e, password: await bcrypt.hash(plain, 10), isFirstLogin: true };
       }),
     );
 
-    const saved = await this.repo.save(hashed);
-    return {
-      list: saved.map(({ password, ...e }) => e as any),
-      passwords,
-    };
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    try {
+      await qr.manager.delete(Employee, { role: Not('superadmin') });
+      const saved = await qr.manager.save(Employee, hashed);
+      await qr.commitTransaction();
+      return { list: saved.map(({ password, ...e }) => e as any), passwords };
+    } catch (err) {
+      await qr.rollbackTransaction();
+      throw err;
+    } finally {
+      await qr.release();
+    }
   }
 
   async upsertOne(

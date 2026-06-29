@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Body, UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PushService }  from './push.service';
+import { SubscribePushDto } from './dto/subscribe-push.dto';
 
 @Controller('api/push')
 export class PushController {
@@ -13,8 +14,8 @@ export class PushController {
 
   @Post('subscribe')
   @UseGuards(JwtAuthGuard)
-  async subscribe(@Req() req: any, @Body() body: any) {
-    await this.push.subscribe(req.user.id, body);
+  async subscribe(@Req() req: any, @Body() dto: SubscribePushDto) {
+    await this.push.subscribe(req.user.id, dto);
     return { ok: true };
   }
 

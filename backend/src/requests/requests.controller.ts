@@ -5,6 +5,7 @@ import { Roles }           from '../auth/roles.decorator';
 import { RequestsService } from './requests.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { PushService }          from '../push/push.service';
+import { UpsertRequestDto }     from './dto/upsert-request.dto';
 
 @Controller('api/requests')
 export class RequestsController {
@@ -29,8 +30,8 @@ export class RequestsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  async create(@Body() body: any) {
-    const req = await this.svc.upsertOne(body);
+  async create(@Body() dto: UpsertRequestDto) {
+    const req = await this.svc.upsertOne(dto);
     this.notify.broadcastNotification('request:new', {
       id: req.id, type: req.type,
       requesterName: req.requesterName, requesterTeam: req.requesterTeam,
@@ -44,8 +45,8 @@ export class RequestsController {
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'superadmin', 'CHIEF')
-  async update(@Param('id') id: string, @Body() body: any) {
-    const req = await this.svc.upsertOne({ ...body, id });
+  async update(@Param('id') id: string, @Body() dto: UpsertRequestDto) {
+    const req = await this.svc.upsertOne({ ...dto, id });
     this.notify.broadcastNotification('request:updated', { id, status: req.status, employeeId: req.employeeId });
     if (req.employeeId) {
       const statusLabel = req.status === 'approved' ? 'được chấp thuận' : req.status === 'rejected' ? 'bị từ chối' : 'được cập nhật';

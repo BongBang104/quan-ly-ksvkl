@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
+import { RequestIdMiddleware } from './common/request-id.middleware';
 
 import { AuthModule }          from './auth/auth.module';
 import { EmployeesModule }     from './employees/employees.module';
@@ -40,7 +41,7 @@ import { PushSubscription }      from './push/push-subscription.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    ThrottlerModule.forRoot([{ name: 'global', ttl: 60_000, limit: 300 }]),
     ScheduleModule.forRoot(),
 
     TypeOrmModule.forRootAsync({
@@ -79,4 +80,8 @@ import { PushSubscription }      from './push/push-subscription.entity';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

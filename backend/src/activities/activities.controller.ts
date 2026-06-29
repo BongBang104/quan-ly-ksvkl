@@ -2,6 +2,7 @@ import { Controller, Get, Put, Post, Delete, Param, Body, UseGuards } from '@nes
 import { JwtAuthGuard }      from '../auth/jwt-auth.guard';
 import { ActivitiesService } from './activities.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { UpsertActivityDto } from './dto/upsert-activity.dto';
 
 @Controller('api/activities')
 export class ActivitiesController {
@@ -24,16 +25,16 @@ export class ActivitiesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  async create(@Body() body: any) {
-    const activity = await this.svc.upsertOne(body);
+  async create(@Body() dto: UpsertActivityDto) {
+    const activity = await this.svc.upsertOne(dto);
     this.notify.broadcastNotification('activity:new', { empId: activity.empId, type: activity.type });
     return activity;
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() body: any) {
-    const activity = await this.svc.upsertOne({ ...body, id });
+  async update(@Param('id') id: string, @Body() dto: UpsertActivityDto) {
+    const activity = await this.svc.upsertOne({ ...dto, id });
     this.notify.broadcastNotification('activity:updated', { id });
     return activity;
   }

@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 @Entity('tasks')
 export class Task {
@@ -7,10 +7,10 @@ export class Task {
   @Column()                  title: string;
   @Column({ nullable: true }) description: string;
   @Column({ nullable: true }) priority: string;
-  @Column({ nullable: true }) status: string;
+  @Index() @Column({ nullable: true }) status: string;
   @Column({ nullable: true }) assignedTo: string;
   @Column({ nullable: true }) dueDate: string;
-  @Column({ nullable: true }) createdBy: string;
+  @Index() @Column({ nullable: true }) createdBy: string;
   @Column({ nullable: true, default: 'team' }) visibility: string;
   @Column({ type: 'jsonb', default: '[]' }) targetEmpIds: string[];
   @Column({ type: 'jsonb', default: '[]' }) comments: Record<string, any>[];

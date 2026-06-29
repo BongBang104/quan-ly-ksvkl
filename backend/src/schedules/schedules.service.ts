@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository }       from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Schedule }               from './schedule.entity';
 import { Shift }                  from './shift.entity';
 import { ShiftPositionSession }   from './shift-position-session.entity';
@@ -25,6 +25,7 @@ export class SchedulesService {
     private readonly empRepo: Repository<Employee>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findByMonth(monthKey: string): Promise<{ data: Record<string, any> }> {
@@ -55,12 +56,6 @@ export class SchedulesService {
     const employees = await this.empRepo.find();
     const empMap = new Map(employees.map(e => [e.id, e]));
 
-    // Delete existing shifts for this month
-    const existing = await this.shiftRepo.find({ where: { monthKey } });
-    if (existing.length > 0) {
-      await this.shiftRepo.delete(existing.map(s => s.id) as any);
-    }
-
     const shifts: Shift[] = [];
     for (const [key, shiftCode] of Object.entries(scheduleData)) {
       if (!shiftCode || key === 'isPublished') continue;
@@ -77,8 +72,6 @@ export class SchedulesService {
       const emp = empMap.get(empId);
       const name = emp?.name ?? empId;
 
-      const [sh, sm] = cfg.startTime.split(':').map(Number);
-      const [eh, em] = cfg.endTime.split(':').map(Number);
       const startDt = new Date(`${dateStr}T${cfg.startTime}:00+07:00`);
       const endDate = cfg.isNight
         ? new Date(new Date(dateStr + 'T00:00:00+07:00').getTime() + 86400000)
@@ -93,8 +86,20 @@ export class SchedulesService {
       shifts.push(shift);
     }
 
-    if (shifts.length > 0) {
-      await this.shiftRepo.save(shifts);
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    try {
+      await qr.manager.delete(Shift, { monthKey });
+      if (shifts.length > 0) {
+        await qr.manager.save(Shift, shifts);
+      }
+      await qr.commitTransaction();
+    } catch (err) {
+      await qr.rollbackTransaction();
+      throw err;
+    } finally {
+      await qr.release();
     }
   }
 }

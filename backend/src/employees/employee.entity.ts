@@ -1,12 +1,12 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 @Entity('employees')
 export class Employee {
   @PrimaryColumn() id:          string;
   @Column()        name:        string;
   @Column({ nullable: true }) icaoCode:     string;
-  @Column({ nullable: true }) team:         string;
-  @Column({ default: 'STAFF' }) role:       string;
+  @Index() @Column({ nullable: true }) team:         string;
+  @Index() @Column({ default: 'STAFF' }) role:       string;
   @Column({ nullable: true }) position:     string;
   @Column({ nullable: true }) qualification: string;
   @Column({ type: 'date', nullable: true }) qualificationExpiresAt: string;
@@ -17,7 +17,7 @@ export class Employee {
   @Column({ nullable: true }) email:        string;
   @Column() password: string;
   @Column({ default: true }) isFirstLogin:  boolean;
-  @Column({ default: true }) isApproved:    boolean;
+  @Index() @Column({ default: true }) isApproved:    boolean;
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;
 }
